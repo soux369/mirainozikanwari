@@ -1,0 +1,215 @@
+export type Day = 'Mon' | 'Tue' | 'Wed' | 'Thu' | 'Fri' | 'Sat';
+
+export type Period = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+
+export type AttendanceStatus = 'present' | 'absent' | 'late' | 'cancelled';
+
+export interface AttendanceRecord {
+    date: string;
+    status: AttendanceStatus;
+}
+
+export interface Assignment {
+    id: string;
+    title: string;
+    deadline?: string;
+    completed: boolean;
+}
+
+export interface Course {
+    id: string;
+    name: string;
+    code?: string; // 5-digit course code
+    professor?: string;
+    room?: string;
+    day: Day;
+    period: Period;
+    color?: string; // Optional custom color
+    term?: string; // e.g., "2025-Spring"
+    attendance?: AttendanceRecord[];
+    notes?: string;
+    assignments?: Assignment[];
+    syllabusUrl?: string;
+    skipNotificationUntil?: string; // ISO date string
+    images?: string[]; // Array of local file URIs
+}
+
+export interface Friend {
+    id: string;
+    name: string;
+    courses: Course[];
+    term: string; // Term ID this friend's schedule belongs to
+    createdAt: string;
+}
+
+export const DAYS: Day[] = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+export const PERIODS: Period[] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+export const DAY_LABELS: Record<Day, string> = {
+    Mon: '月',
+    Tue: '火',
+    Wed: '水',
+    Thu: '木',
+    Fri: '金',
+    Sat: '土',
+};
+
+// ... existing code ...
+// More distinct and vibrant colors for better readability and aesthetics
+export const COLORS = [
+    '#dbeafe', // Blue
+    '#dcfce7', // Green
+    '#fce7f3', // Pink
+    '#fef3c7', // Yellow
+    '#e0e7ff', // Indigo
+    '#ffedd5', // Orange
+    '#f3e8ff', // Purple
+    '#fee2e2', // Red
+    '#ccfbf1', // Teal
+];
+
+export interface Settings {
+    visibleDays: Day[];
+    maxPeriod: number;
+    firstPeriodStart: string; // "09:00"
+    thirdPeriodStart: string; // "13:00"
+    periodDuration: number;   // 90 (minutes)
+    breakDuration: number;    // 10 (minutes)
+    latesEquivalentToAbsence: number; // How many lates count as 1 absence
+    enableGlass: boolean;
+    tableBackgroundColor: string;
+    backgroundImage?: string | null;
+    notificationFirstClassMinutes: number; // Minutes before first class
+    notificationOtherClassMinutes: number; // Minutes before other classes
+    notificationsEnabled: boolean;
+    holidayStart: string | null;
+    holidayEnd: string | null;
+    holidayModeEnabled: boolean; // Toggle to ignore holiday settings
+    fontFamily: string; // New: Global Font Setting
+    enableSwipeNavigation: boolean;
+    customPeriodDurations?: Record<string, number>; // key: "1" (global) or "Mon-1" (specific)
+    autoAttendanceEnabled: boolean;
+    schoolWifiSSID: string;
+    lastAutoAttendanceDate?: string;
+    language: 'ja' | 'en'; // New I18n
+}
+
+
+export const DEFAULT_SETTINGS: Settings = {
+    visibleDays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    maxPeriod: 5,
+    firstPeriodStart: '09:00',
+    thirdPeriodStart: '13:00',
+    periodDuration: 90,
+    breakDuration: 10,
+    latesEquivalentToAbsence: 3,
+    enableGlass: true,
+    tableBackgroundColor: '#F8F9FA',
+    backgroundImage: null,
+    notificationFirstClassMinutes: 10,
+    notificationOtherClassMinutes: 10,
+    notificationsEnabled: true,
+    holidayStart: null,
+    holidayEnd: null,
+    holidayModeEnabled: true,
+    fontFamily: 'System', // Default
+    enableSwipeNavigation: true,
+    autoAttendanceEnabled: false,
+    schoolWifiSSID: '',
+    language: 'ja'
+};
+
+export const FONT_OPTIONS = [
+    { label: '端末のフォント (標準)', value: 'System' },
+    { label: '丸ゴシック (Rounded)', value: 'M PLUS Rounded 1c' }, // Will need Google Font
+    { label: '明朝体 (Serif)', value: 'Noto Serif JP' },
+    { label: 'モダン (Roboto)', value: 'Roboto' },
+];
+
+export interface ThemePreset {
+    id: string; // usually the light color hex
+    light: string;
+    dark: string;
+    lightGradient?: [string, string];
+    darkGradient?: [string, string];
+    label: string;
+}
+
+export const THEME_PRESETS: ThemePreset[] = [
+    {
+        id: '#F8F9FA',
+        light: '#F8F9FA',
+        dark: '#1e293b',
+        lightGradient: ['#F8F9FA', '#E9ECEF'],
+        darkGradient: ['#334155', '#0f172a'], // Slate 700 -> Slate 900
+        label: 'Default'
+    },
+    {
+        id: '#FFFFFF',
+        light: '#FFFFFF',
+        dark: '#0f172a',
+        lightGradient: ['#FFFFFF', '#F1F5F9'],
+        darkGradient: ['#1e293b', '#020617'], // Slate 800 -> Slate 950
+        label: 'White'
+    },
+    {
+        id: '#FFF8E1',
+        light: '#FFF8E1',
+        dark: '#4a3b2a',
+        lightGradient: ['#FFF8E1', '#FFE0B2'],
+        darkGradient: ['#78350f', '#451a03'], // Amber 900 -> Amber 950
+        label: 'Warm'
+    },
+    {
+        id: '#E3F2FD',
+        light: '#E3F2FD',
+        dark: '#1e3a8a',
+        lightGradient: ['#E3F2FD', '#90CAF9'],
+        darkGradient: ['#1d4ed8', '#172554'], // Blue 700 -> Blue 950
+        label: 'Cool'
+    },
+    {
+        id: '#E0F2F1',
+        light: '#E0F2F1',
+        dark: '#134e4a',
+        lightGradient: ['#E0F2F1', '#B2DFDB'],
+        darkGradient: ['#0f766e', '#042f2e'], // Teal 700 -> Teal 950
+        label: 'Mint'
+    },
+    {
+        id: '#F3E5F5',
+        light: '#F3E5F5',
+        dark: '#581c87',
+        lightGradient: ['#F3E5F5', '#E1BEE7'],
+        darkGradient: ['#7e22ce', '#3b0764'], // Purple 700 -> Purple 950
+        label: 'Lilac'
+    },
+];
+
+export interface Term {
+    id: string;
+    label: string;
+}
+
+export const DEFAULT_TERMS: Term[] = [
+    { id: '2027-Fall', label: '2027 / 秋セメスター' },
+    { id: '2027-Spring', label: '2027 / 春セメスター' },
+    { id: '2026-Fall', label: '2026 / 秋セメスター' },
+    { id: '2026-Spring', label: '2026 / 春セメスター' },
+    { id: '2025-Fall', label: '2025 / 秋セメスター' },
+    { id: '2025-Spring', label: '2025 / 春セメスター' },
+    { id: '2024-Fall', label: '2024 / 秋セメスター' },
+    { id: '2024-Spring', label: '2024 / 春セメスター' },
+];
+
+export const getBackgroundColor = (settingColor: string, isDarkMode: boolean): string | [string, string] => {
+    const preset = THEME_PRESETS.find(p => p.id === settingColor);
+    if (preset) {
+        if (isDarkMode) {
+            return preset.darkGradient || preset.dark;
+        } else {
+            return preset.lightGradient || preset.light;
+        }
+    }
+    return isDarkMode ? '#1e293b' : settingColor;
+};
