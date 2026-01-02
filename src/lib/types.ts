@@ -5,6 +5,7 @@ export type Period = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 export type AttendanceStatus = 'present' | 'absent' | 'late' | 'cancelled';
 
 export interface AttendanceRecord {
+    id: string; // Added for list rendering keys
     date: string;
     status: AttendanceStatus;
 }
@@ -26,7 +27,7 @@ export interface Course {
     period: Period;
     color?: string; // Optional custom color
     term?: string; // e.g., "2025-Spring"
-    attendance?: AttendanceRecord[];
+    attendanceHistory?: AttendanceRecord[];
     notes?: string;
     assignments?: Assignment[];
     syllabusUrl?: string;
@@ -88,9 +89,6 @@ export interface Settings {
     fontFamily: string; // New: Global Font Setting
     enableSwipeNavigation: boolean;
     customPeriodDurations?: Record<string, number>; // key: "1" (global) or "Mon-1" (specific)
-    autoAttendanceEnabled: boolean;
-    schoolWifiSSID: string;
-    lastAutoAttendanceDate?: string;
     language: 'ja' | 'en'; // New I18n
 }
 
@@ -114,8 +112,6 @@ export const DEFAULT_SETTINGS: Settings = {
     holidayModeEnabled: true,
     fontFamily: 'System', // Default
     enableSwipeNavigation: true,
-    autoAttendanceEnabled: false,
-    schoolWifiSSID: '',
     language: 'ja'
 };
 

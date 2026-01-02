@@ -40,15 +40,18 @@ export const AdBanner = () => {
         );
     }
 
-    // Debug Mode: Show error instead of hiding
+    // Debug Mode: Show error only in DEV
     if (error) {
-        return (
-            <View style={{ alignItems: 'center', justifyContent: 'center', padding: 10 }}>
-                <Text style={{ fontSize: 10, color: '#ef4444' }}>
-                    [Load Error] {String(error)}
-                </Text>
-            </View>
-        );
+        if (__DEV__) {
+            return (
+                <View style={{ alignItems: 'center', justifyContent: 'center', padding: 10 }}>
+                    <Text style={{ fontSize: 10, color: '#ef4444' }}>
+                        [Load Error] {String(error)}
+                    </Text>
+                </View>
+            );
+        }
+        return null; // Hide completely in production
     }
 
     return (

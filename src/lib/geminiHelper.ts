@@ -26,7 +26,7 @@ export const recognizeWithGemini = async (base64Image: string, apiKey: string): 
 
     For each course, identify:
     - code: The course code (e.g. 7 digits like 2100010, usually at the top)
-    - name: Course name. IMPORTANT: If there are Quarter terms like "Q1", "3Q", "(Q3)", format them as "[Q3] Name" (or [Q1] etc) at the BEGINNING. Do NOT remove them.
+    - name: Course name. WARNING: Only include Quarter terms if EXPLICITLY written (e.g., "Q1", "3Q", "第2クォーター", "クォーター2"). IF found, convert to standard format "[Q2] Name". Do NOT guess or hallucinate if not written.
     - day: "Mon", "Tue", "Wed", "Thu", "Fri", or "Sat".
     - period: 1 to 6.
     - room: Room number or name (e.g. 2161, Gym, Lab, or text like "大競技")

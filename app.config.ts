@@ -19,14 +19,13 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
     ],
     ios: {
         supportsTablet: true,
-        buildNumber: "16",
+        buildNumber: "32",
         bundleIdentifier: "com.mono0261.universitytimetablemobile",
         infoPlist: {
             ITSAppUsesNonExemptEncryption: false,
             NSUserTrackingUsageDescription: "広告の関連性を高めるために、ユーザーの行動履歴を使用します。"
         },
         entitlements: {
-            "com.apple.developer.networking.wifi-info": true
         }
     },
     android: {
@@ -41,11 +40,9 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
             "WRITE_EXTERNAL_STORAGE",
             "NOTIFICATIONS",
             "SCHEDULE_EXACT_ALARM",
-            "ACCESS_FINE_LOCATION",
-            "ACCESS_COARSE_LOCATION",
-            "ACCESS_WIFI_STATE"
+
         ],
-        versionCode: 15
+        versionCode: 31
     },
     web: {
         favicon: "./assets/favicon.png"
@@ -64,12 +61,7 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                 "photosPermission": "時間割の画像を読み込むためにフォトライブラリにアクセスします。"
             }
         ],
-        [
-            "expo-location",
-            {
-                "locationWhenInUsePermission": "Wi-Fi出席機能のために、接続中のWi-Fi情報を取得する目的で位置情報を使用します。"
-            }
-        ],
+
         "@react-native-community/datetimepicker",
         [
             "react-native-google-mobile-ads",
@@ -100,7 +92,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                         "minWidth": "320dp",
                         "minHeight": "180dp",
                         "description": "今日の授業を表示します",
-                        "previewImage": "./assets/widget-preview.png"
+                        "previewImage": "./assets/widget-preview.png",
+                        "updatePeriodMillis": 1800000
+                    },
+                    {
+                        "name": "TimetableWidgetSmall",
+                        "label": "今日の時間割 (小)",
+                        "minWidth": "160dp",
+                        "minHeight": "160dp",
+                        "description": "今日の授業をコンパクトに表示します",
+                        "previewImage": "./assets/widget-preview.png",
+                        "updatePeriodMillis": 1800000
                     },
                     {
                         "name": "CountdownWidget",
@@ -108,7 +110,17 @@ export default ({ config }: ConfigContext): ExpoConfig => ({
                         "minWidth": "320dp",
                         "minHeight": "180dp",
                         "description": "提出期限の近い課題を表示します",
-                        "previewImage": "./assets/widget-preview.png"
+                        "previewImage": "./assets/widget-preview.png",
+                        "updatePeriodMillis": 1800000
+                    },
+                    {
+                        "name": "CountdownWidgetSmall",
+                        "label": "課題カウントダウン (小)",
+                        "minWidth": "160dp",
+                        "minHeight": "160dp",
+                        "description": "提出期限の近い課題をコンパクトに表示します",
+                        "previewImage": "./assets/widget-preview.png",
+                        "updatePeriodMillis": 1800000
                     }
                 ]
             }

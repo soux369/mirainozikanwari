@@ -65,7 +65,8 @@ const TimetableGrid: React.FC<TimetableGridProps> = ({ courses, settings, onCour
                         settings.thirdPeriodStart,
                         settings.periodDuration || 90,
                         settings.breakDuration || 10,
-                        settings.customPeriodDurations
+                        settings.customPeriodDurations,
+                        currentDay || undefined
                     );
 
                     // Dynamic Height Calculation

@@ -5,7 +5,7 @@ import { Platform } from 'react-native';
 // import { requestWidgetUpdate } from 'react-native-android-widget';
 // // @ts-ignore
 // import WidgetCenter from 'react-native-widget-center';
-import { Course } from './types';
+import { Course, Settings } from './types';
 import { TimetableWidget } from '../widgets/android/TimetableWidget';
 import { CountdownWidget } from '../widgets/android/CountdownWidget';
 
@@ -18,13 +18,14 @@ interface AssignmentData {
     deadline?: string;
     courseName: string;
     daysRemaining: number;
+    timeString?: string;
 }
 
 
 
 const WIDGET_ASSIGNMENTS_KEY = 'widgetAssignments';
 
-export const updateWidgets = async (courses: Course[]) => {
+export const updateWidgets = async (courses: Course[], settings?: Settings) => {
     try {
         // Dynamic import for Native Modules
         let SharedGroupPreferences;
@@ -35,20 +36,35 @@ export const updateWidgets = async (courses: Course[]) => {
             return;
         }
 
+        const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+
         // 1. Prepare Courses Data
         const dataStr = JSON.stringify(courses);
-        await SharedGroupPreferences.setItem(WIDGET_DATA_KEY, dataStr, APP_GROUP);
+        await AsyncStorage.setItem('WIDGET_DATA_COURSES', dataStr);
 
-        // 2. Prepare Assignments Data
+        // 2. Prepare Assignments Data (with Deduplication and Time)
         const allAssignments: AssignmentData[] = [];
+        const seenIds = new Set<string>();
         const today = new Date();
         today.setHours(0, 0, 0, 0);
 
         courses.forEach(c => {
             if (c.assignments) {
                 c.assignments.forEach(a => {
-                    if (!a.completed && a.deadline) {
+                    if (!a.completed && a.deadline && !seenIds.has(a.id)) {
                         let deadlineDate = new Date(a.deadline);
+                        let timeString = "";
+
+                        // Extract time HH:mm
+                        if (!isNaN(deadlineDate.getTime())) {
+                            const h = deadlineDate.getHours();
+                            const m = deadlineDate.getMinutes();
+                            timeString = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+                        } else if (a.deadline.match(/^\d{1,2}\/\d{1,2}\s+\d{1,2}:\d{1,2}$/)) {
+                            // Match MM/DD HH:mm manually if new Date fails on some platforms
+                            const timePart = a.deadline.split(/\s+/)[1];
+                            if (timePart) timeString = timePart;
+                        }
 
                         // Handle "MM/DD" format manual parsing if Invalid Date or default year
                         if (isNaN(deadlineDate.getTime()) || a.deadline.match(/^\d{1,2}\/\d{1,2}$/)) {
@@ -67,43 +83,70 @@ export const updateWidgets = async (courses: Course[]) => {
                                 title: a.title,
                                 deadline: a.deadline,
                                 courseName: c.name,
-                                daysRemaining: diffDays
+                                daysRemaining: diffDays,
+                                timeString: timeString || undefined
                             });
+                            seenIds.add(a.id);
                         }
                     }
                 });
             }
         });
 
-        // Sort by days remaining (asc)
         allAssignments.sort((a, b) => a.daysRemaining - b.daysRemaining);
         const assignmentsStr = JSON.stringify(allAssignments);
-        await SharedGroupPreferences.setItem(WIDGET_ASSIGNMENTS_KEY, assignmentsStr, APP_GROUP);
+        await AsyncStorage.setItem('WIDGET_DATA_ASSIGNMENTS', assignmentsStr);
 
+        // 3. Persist Settings for Background Tasks
+        if (settings) {
+            await AsyncStorage.setItem('WIDGET_DATA_SETTINGS', JSON.stringify(settings));
+        }
 
         // Trigger updates
         if (Platform.OS === 'android') {
             try {
                 const { requestWidgetUpdate } = require('react-native-android-widget');
 
-                // 1. Timetable Widget
+                // 1. Timetable Widget logic
                 const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
                 const daysJP = ['日', '月', '火', '水', '木', '金', '土'];
                 const now = new Date();
 
-                // Helper to check if a class period is over (Same logic as handler)
+                // Helper to check if a class period is over (Uses settings if provided)
                 const isPeriodOver = (period: number, date: Date) => {
                     let endHour = 0;
                     let endMinute = 0;
-                    switch (period) {
-                        case 1: endHour = 10; endMinute = 30; break;
-                        case 2: endHour = 12; endMinute = 10; break;
-                        case 3: endHour = 14; endMinute = 30; break;
-                        case 4: endHour = 16; endMinute = 10; break;
-                        case 5: endHour = 17; endMinute = 50; break;
-                        case 6: endHour = 19; endMinute = 30; break;
-                        default: endHour = 23; endMinute = 59; break;
+
+                    if (settings) {
+                        // Use calculated time from settings
+                        const { calculateTime } = require('./timeUtils');
+                        const dayStr = days[date.getDay()];
+                        const time = calculateTime(
+                            period,
+                            settings.firstPeriodStart,
+                            settings.thirdPeriodStart,
+                            settings.periodDuration || 90,
+                            settings.breakDuration || 10,
+                            settings.customPeriodDurations,
+                            dayStr as any
+                        );
+                        // Extract end time HH:mm
+                        const [eh, em] = time.end.split(':').map(Number);
+                        endHour = eh;
+                        endMinute = em;
+                    } else {
+                        // Default Fallback
+                        switch (period) {
+                            case 1: endHour = 10; endMinute = 30; break;
+                            case 2: endHour = 12; endMinute = 10; break;
+                            case 3: endHour = 14; endMinute = 30; break;
+                            case 4: endHour = 16; endMinute = 10; break;
+                            case 5: endHour = 17; endMinute = 50; break;
+                            case 6: endHour = 19; endMinute = 30; break;
+                            default: endHour = 23; endMinute = 59; break;
+                        }
                     }
+
                     const currentHour = date.getHours();
                     const currentMinute = date.getMinutes();
 
@@ -149,15 +192,27 @@ export const updateWidgets = async (courses: Course[]) => {
 
                 requestWidgetUpdate({
                     widgetName: 'TimetableWidget',
-                    renderWidget: () => <TimetableWidget courses={displayCourses} dateString={timetableDateString} />,
+                    renderWidget: () => <TimetableWidget courses={displayCourses} dateString={timetableDateString} widgetSize="medium" />,
                     widgetNotFound: () => { console.log('Timetable Widget not found'); }
+                });
+
+                requestWidgetUpdate({
+                    widgetName: 'TimetableWidgetSmall',
+                    renderWidget: () => <TimetableWidget courses={displayCourses} dateString={timetableDateString} widgetSize="small" />,
+                    widgetNotFound: () => { console.log('Timetable Widget Small not found'); }
                 });
 
                 // 2. Countdown Widget
                 requestWidgetUpdate({
                     widgetName: 'CountdownWidget',
-                    renderWidget: () => <CountdownWidget assignments={allAssignments} lastUpdated={todayStr} />,
+                    renderWidget: () => <CountdownWidget assignments={allAssignments} lastUpdated={todayStr} widgetSize="medium" />,
                     widgetNotFound: () => { console.log('Countdown Widget not found'); }
+                });
+
+                requestWidgetUpdate({
+                    widgetName: 'CountdownWidgetSmall',
+                    renderWidget: () => <CountdownWidget assignments={allAssignments} lastUpdated={todayStr} widgetSize="small" />,
+                    widgetNotFound: () => { console.log('Countdown Widget Small not found'); }
                 });
             } catch (e) {
                 console.log("Android Widget logic skipped", e);
@@ -165,6 +220,15 @@ export const updateWidgets = async (courses: Course[]) => {
 
         } else if (Platform.OS === 'ios') {
             try {
+                // For iOS, SharedGroupPreferences is used to share data with the widget extension
+                const assignmentsData = JSON.stringify(allAssignments);
+                SharedGroupPreferences.setItem(WIDGET_ASSIGNMENTS_KEY, assignmentsData, APP_GROUP);
+
+                // Also share settings if available
+                if (settings) {
+                    SharedGroupPreferences.setItem('widgetSettings', JSON.stringify(settings), APP_GROUP);
+                }
+
                 const WidgetCenter = require('react-native-widget-center').default;
                 WidgetCenter.reloadAllTimelines();
             } catch (e) {

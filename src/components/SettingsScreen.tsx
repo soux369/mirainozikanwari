@@ -8,7 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { sendTestNotification } from '../lib/notificationManager';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import * as Location from 'expo-location';
+
 import { translations, LanguageCode } from '../lib/i18n';
 
 interface SettingsScreenProps {
@@ -77,10 +77,18 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
             if (!result.canceled && result.assets && result.assets.length > 0) {
                 updateSetting('backgroundImage', result.assets[0].uri);
+                Alert.alert("完了", "背景画像を設定しました。");
             }
         } catch (e) {
             Alert.alert('Error', 'Failed to pick image');
         }
+    };
+
+
+
+    const openLink = (url: string) => {
+        const { Linking } = require('react-native');
+        Linking.openURL(url).catch((err: any) => console.error("Couldn't load page", err));
     };
 
     const handleClearCourses = () => {
@@ -184,6 +192,37 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                                     ]}>{num}</ThemedText>
                                 </TouchableOpacity>
                             ))}
+                        </View>
+                    </View>
+
+                    {/* Lates Equivalent to Absence */}
+                    <View style={[styles.row, { borderBottomColor: borderColor }]}>
+                        <View>
+                            <ThemedText style={[styles.label, { color: textPrimary }]}>遅刻カウント設定</ThemedText>
+                            <Text style={{ fontSize: 11, color: textSecondary }}>何回遅刻で1回欠席扱いにするか</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                            <TouchableOpacity
+                                style={[styles.periodChip, { backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', width: 28, height: 28 }]}
+                                onPress={() => {
+                                    const current = localSettings.latesEquivalentToAbsence || 3;
+                                    if (current > 1) updateSetting('latesEquivalentToAbsence', current - 1);
+                                }}
+                            >
+                                <Feather name="minus" size={16} color={textPrimary} />
+                            </TouchableOpacity>
+                            <ThemedText style={{ fontSize: 16, fontWeight: 'bold', minWidth: 20, textAlign: 'center' }}>
+                                {localSettings.latesEquivalentToAbsence || 3}
+                            </ThemedText>
+                            <TouchableOpacity
+                                style={[styles.periodChip, { backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', width: 28, height: 28 }]}
+                                onPress={() => {
+                                    const current = localSettings.latesEquivalentToAbsence || 3;
+                                    if (current < 10) updateSetting('latesEquivalentToAbsence', current + 1);
+                                }}
+                            >
+                                <Feather name="plus" size={16} color={textPrimary} />
+                            </TouchableOpacity>
                         </View>
                     </View>
 
@@ -389,7 +428,7 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                             }}
                             onPress={async () => {
                                 await sendTestNotification();
-                                alert(t.testNotificationDone, t.testNotificationMessage);
+                                Alert.alert(t.testNotificationDone, t.testNotificationMessage);
                             }}
                         >
                             <Feather name="send" size={16} color="#4f46e5" />
@@ -475,7 +514,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         <Text style={[styles.label, { color: textPrimary }]}>{t.backgroundImage}</Text>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16 }}>
                             {localSettings.backgroundImage && (
-                                <TouchableOpacity onPress={() => updateSetting('backgroundImage', null)}>
+                                <TouchableOpacity onPress={() => {
+                                    updateSetting('backgroundImage', null);
+                                    Alert.alert("完了", "背景画像を削除しました。");
+                                }}>
                                     <Feather name="trash-2" size={18} color="#ef4444" />
                                 </TouchableOpacity>
                             )}
@@ -546,12 +588,15 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                                         borderColor: isSelected ? '#4f46e5' : 'transparent'
                                     }}
                                 >
-                                    <ThemedText style={{
-                                        color: isSelected ? 'white' : (isDarkMode ? '#e2e8f0' : '#1e293b'),
-                                        fontSize: 13,
-                                        fontWeight: isSelected ? '600' : '400',
-                                        fontFamily: f.value === 'System' ? undefined : f.value
-                                    }}>
+                                    <ThemedText
+                                        numberOfLines={1}
+                                        style={{
+                                            color: isSelected ? 'white' : (isDarkMode ? '#e2e8f0' : '#1e293b'),
+                                            fontSize: 13,
+                                            fontWeight: isSelected ? '600' : '400',
+                                            fontFamily: f.value === 'System' ? undefined : f.value
+                                        }}
+                                    >
                                         {f.label}
                                     </ThemedText>
                                 </TouchableOpacity>
@@ -563,102 +608,22 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
 
 
 
-            {/* Beta Features */}
-            < View style={styles.sectionContainer} >
-                <View style={styles.sectionHeader}>
-                    <Feather name="cpu" size={14} color={sectionTitleColor} />
-                    <Text style={[styles.sectionTitle, { color: sectionTitleColor }]}>実験的機能 (Beta)</Text>
+
+
+
+            {/* Support & Legal */}
+            <View style={styles.sectionContainer}>
+                {renderSectionHeader(t.legal, "info")}
+                <View style={[styles.card, { backgroundColor: sectionBg }]}>
+                    <TouchableOpacity
+                        style={[styles.row, { borderBottomWidth: 0 }]}
+                        onPress={() => openLink('https://soux369.github.io/mirainozikanwari/privacy.html')}
+                    >
+                        <ThemedText style={[styles.label, { color: textPrimary }]}>{t.privacyPolicy}</ThemedText>
+                        <Feather name="external-link" size={16} color={textSecondary} />
+                    </TouchableOpacity>
                 </View>
-
-                <View style={[styles.card, { backgroundColor: cardBg }]}>
-                    {/* Disclaimer */}
-                    <View style={{ padding: 16, backgroundColor: isDarkMode ? 'rgba(234, 179, 8, 0.1)' : '#fefce8', borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: borderColor }}>
-                        <View style={{ flexDirection: 'row', gap: 8 }}>
-                            <Feather name="alert-triangle" size={18} color="#eab308" style={{ marginTop: 2 }} />
-                            <Text style={{ flex: 1, fontSize: 13, color: isDarkMode ? '#fef08a' : '#854d0e', lineHeight: 22 }}>
-                                {t.betaDisclaimer}
-                            </Text>
-                        </View>
-                    </View>
-
-                    {/* Ad Inspector Button (Dev Only) */}
-                    {__DEV__ && (
-                        <View style={[styles.row, { borderBottomColor: borderColor }]}>
-                            <View>
-                                <Text style={[styles.label, { color: textPrimary }]}>{t.adDebug}</Text>
-                                <Text style={{ fontSize: 12, color: textSecondary, marginTop: 2 }}>{t.adDebugDescription}</Text>
-                            </View>
-                            <TouchableOpacity
-                                onPress={async () => {
-                                    try {
-                                        const { MobileAds } = require('react-native-google-mobile-ads');
-                                        await MobileAds().openAdInspector();
-                                    } catch (e) {
-                                        Alert.alert("エラー", `AdMob SDKが利用できません\n詳細: ${e}`);
-                                    }
-                                }}
-                                style={{ backgroundColor: '#e0e7ff', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8 }}
-                            >
-                                <Text style={{ color: '#4f46e5', fontSize: 12, fontWeight: 'bold' }}>開く</Text>
-                            </TouchableOpacity>
-                        </View>
-                    )}
-
-                    {/* Auto Attendance Toggle */}
-                    <View style={[styles.row, { borderBottomColor: borderColor }]}>
-                        <View>
-                            <Text style={[styles.label, { color: textPrimary }]}>{t.autoAttendance}</Text>
-                            <Text style={{ fontSize: 12, color: textSecondary, marginTop: 2 }}>{t.autoAttendanceDescription}</Text>
-                        </View>
-                        <Switch
-                            value={localSettings.autoAttendanceEnabled}
-                            onValueChange={async (val) => {
-                                if (val) {
-                                    // User wants to enable. Request permission first.
-                                    const { status } = await Location.requestForegroundPermissionsAsync();
-                                    if (status === 'granted') {
-                                        updateSetting('autoAttendanceEnabled', true);
-                                    } else {
-                                        Alert.alert(
-                                            t.locationPermissionReq,
-                                            t.locationPermissionDesc,
-                                            [{ text: t.ok }]
-                                        );
-                                        updateSetting('autoAttendanceEnabled', false);
-                                    }
-                                } else {
-                                    updateSetting('autoAttendanceEnabled', false);
-                                }
-                            }}
-                            trackColor={{ false: '#767577', true: '#818cf8' }}
-                            thumbColor={localSettings.autoAttendanceEnabled ? '#4f46e5' : '#f4f3f4'}
-                        />
-                    </View>
-
-                    {/* SSID Input */}
-                    {localSettings.autoAttendanceEnabled && (
-                        <View style={[styles.row, { borderBottomColor: borderColor, flexDirection: 'column', alignItems: 'stretch', gap: 8 }]}>
-                            <Text style={[styles.label, { color: textPrimary, fontSize: 14 }]}>{t.schoolWifiSSID}</Text>
-                            <TextInput
-                                style={[styles.input, {
-                                    textAlign: 'left',
-                                    backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
-                                    paddingHorizontal: 12,
-                                    paddingVertical: 10,
-                                    borderRadius: 8,
-                                    color: textPrimary
-                                }]}
-                                placeholder="例: University_WiFi"
-                                placeholderTextColor={textSecondary}
-                                value={localSettings.schoolWifiSSID}
-                                onChangeText={(val) => updateSetting('schoolWifiSSID', val)}
-                                autoCapitalize="none"
-                                autoCorrect={false}
-                            />
-                        </View>
-                    )}
-                </View>
-            </View >
+            </View>
 
             {/* Danger Zone */}
             < View style={[styles.sectionContainer, { marginTop: 20 }]} >
@@ -793,7 +758,10 @@ export const SettingsScreen: React.FC<SettingsScreenProps> = ({
                         </ScrollView>
                         <TouchableOpacity
                             style={{ backgroundColor: '#4f46e5', padding: 14, borderRadius: 12, alignItems: 'center', marginTop: 16 }}
-                            onPress={() => setShowDurationModal(false)}
+                            onPress={() => {
+                                Alert.alert("完了", "授業時間を個別に設定しました。");
+                                setShowDurationModal(false);
+                            }}
                         >
                             <Text style={{ color: 'white', fontWeight: 'bold' }}>完了</Text>
                         </TouchableOpacity>

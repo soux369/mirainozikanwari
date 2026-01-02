@@ -1,14 +1,13 @@
 import { StatusBar } from 'expo-status-bar';
 import { updateWidgets } from './src/lib/widgetHelper';
 import React, { useState, useEffect, useRef } from 'react';
-import { StyleSheet, Text, View, TouchableOpacity, Platform, LogBox, ImageBackground, ActivityIndicator, Alert, Dimensions, ScrollView, AppState } from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, Platform, LogBox, ImageBackground, ActivityIndicator, Alert, Dimensions, ScrollView, AppState, Image } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Feather } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as ImagePicker from 'expo-image-picker';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Network from 'expo-network';
-import * as Location from 'expo-location';
+
 
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
@@ -32,6 +31,7 @@ import { FriendNameInputModal } from './src/components/FriendNameInputModal';
 import { recognizeWithGemini } from './src/lib/geminiHelper';
 import { GEMINI_API_KEY } from './src/config';
 import { useFonts, NotoSerifJP_400Regular, NotoSerifJP_700Bold } from '@expo-google-fonts/noto-serif-jp';
+import { NotoSansJP_400Regular, NotoSansJP_700Bold } from '@expo-google-fonts/noto-sans-jp';
 import { MPLUSRounded1c_400Regular, MPLUSRounded1c_700Bold } from '@expo-google-fonts/m-plus-rounded-1c';
 import { FontProvider } from './src/lib/FontContext';
 import { ThemedText } from './src/components/ThemedText';
@@ -118,6 +118,7 @@ export default function App() {
 
     const [fontsLoaded] = useFonts({
         'Noto Serif JP': NotoSerifJP_400Regular,
+        'Noto Sans JP': NotoSansJP_400Regular,
         'M PLUS Rounded 1c': MPLUSRounded1c_400Regular,
     });
 
@@ -147,8 +148,15 @@ export default function App() {
 
                 // Check Tracking Permission (iOS 14+)
                 if (Platform.OS === 'ios') {
-                    const { requestTrackingPermissionsAsync } = require('expo-tracking-transparency');
-                    await requestTrackingPermissionsAsync();
+                    const { requestTrackingPermissionsAsync, getTrackingPermissionsAsync } = require('expo-tracking-transparency');
+
+                    // Check current status first
+                    const { status } = await getTrackingPermissionsAsync();
+                    if (status === 'undetermined') {
+                        // Small delay to ensure root view is ready (especially on iPad)
+                        await new Promise(resolve => setTimeout(resolve, 1500));
+                        await requestTrackingPermissionsAsync();
+                    }
                 }
 
                 await MobileAds().initialize();
@@ -166,106 +174,7 @@ export default function App() {
         }
     }, [courses, settings]);
 
-    // Auto Attendance Logic (Beta)
-    useEffect(() => {
-        const checkAutoAttendance = async () => {
-            if (!settings.autoAttendanceEnabled || !settings.schoolWifiSSID) return;
 
-            try {
-                // Check Permission (Do NOT request here, only check)
-                const { status } = await Location.getForegroundPermissionsAsync();
-                if (status !== 'granted') return; // Silent return if not granted
-
-                // Check WiFi SSID
-                const state = await Network.getNetworkStateAsync();
-                // @ts-ignore
-                const currentSSID = state.type === Network.NetworkStateType.WIFI ? state.details?.ssid : null;
-
-                // DEBUG ALERT
-                // Alert.alert("WiFi Debug", `Permission: ${status}\nSSID: ${currentSSID}\nTarget: ${settings.schoolWifiSSID}`);
-
-                if (!currentSSID || currentSSID === '<unknown ssid>') {
-                    // console.log("Unknown SSID or Not WiFi");
-                    return;
-                }
-
-                const cleanSSID = currentSSID.replace(/^"|"$/g, '');
-
-                // Show toast or alert if matched (for verification)
-                // if (cleanSSID === settings.schoolWifiSSID) Alert.alert("WiFi Matched", cleanSSID);
-
-                if (cleanSSID !== settings.schoolWifiSSID) return;
-
-                // SSID Matched! Find current course.
-                const now = new Date();
-                const dayIndex = now.getDay();
-                if (dayIndex === 0) return; // Sunday
-
-                const dayMap: Day[] = ['Mon', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                // Fix: getDay 0=Sun, 1=Mon. We need dayMap[1]='Mon'.
-                // So index 1 => Mon.
-                const todayLabel = dayMap[dayIndex];
-
-                const nowMinutes = now.getHours() * 60 + now.getMinutes();
-
-                const currentCourse = courses.find(c => {
-                    if (c.day !== todayLabel) return false;
-                    const { startMinutes, endMinutes } = calculateTime(
-                        c.period,
-                        settings.firstPeriodStart,
-                        settings.thirdPeriodStart,
-                        settings.periodDuration,
-                        settings.breakDuration,
-                        settings.customPeriodDurations,
-                        c.day
-                    );
-                    // Allow check-in during class or slightly before?
-                    // Let's say: Start - 10mins <= Now <= End
-                    const buffer = 10;
-                    return nowMinutes >= (startMinutes - buffer) && nowMinutes <= endMinutes;
-                });
-
-                if (currentCourse) {
-                    const todayStr = '2025-12-24'; // FIXED DATE FOR TESTING? NO, use real date.
-                    const realTodayStr = now.toISOString().split('T')[0];
-
-                    // @ts-ignore
-                    const alreadyAttended = currentCourse.attendance?.some(r => r.date === realTodayStr);
-
-                    if (!alreadyAttended) {
-                        // Mark as Present
-                        const newRecord = { date: realTodayStr, status: 'present' as const };
-                        const updatedCourse = {
-                            ...currentCourse,
-                            attendance: [...(currentCourse.attendance || []), newRecord]
-                        };
-
-                        // Helper to save
-                        const newCourses = courses.map(c => c.id === updatedCourse.id ? updatedCourse : c);
-                        setCourses(newCourses);
-                        AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(newCourses));
-
-                        Alert.alert("自動出席 (Beta)", `${currentCourse.name} に出席登録しました。`);
-                    }
-                }
-
-            } catch (e) {
-                // Silent fail
-            }
-        };
-
-        const subscription = AppState.addEventListener('change', nextAppState => {
-            if (nextAppState === 'active') {
-                checkAutoAttendance();
-            }
-        });
-
-        checkAutoAttendance();
-
-        return () => {
-            subscription.remove();
-        };
-    }, [settings.autoAttendanceEnabled, settings.schoolWifiSSID, courses /* Re-run if courses change? Maybe infinite loop if we update courses inside? No, because we check alreadyAttended. */]);
 
 
     const loadTutorialState = async () => {
@@ -319,8 +228,8 @@ export default function App() {
     useEffect(() => {
         const current = courses.filter(c => c.term === currentTerm);
         // Even if empty, we should update (to clear widget)
-        updateWidgets(current);
-    }, [courses, currentTerm]);
+        updateWidgets(current, settings);
+    }, [courses, currentTerm, settings]);
 
     const predictCurrentTerm = (): string => {
         const now = new Date();
@@ -398,8 +307,7 @@ export default function App() {
                     periodDuration: saved.periodDuration || DEFAULT_SETTINGS.periodDuration,
                     breakDuration: saved.breakDuration || DEFAULT_SETTINGS.breakDuration,
                     latesEquivalentToAbsence: saved.latesEquivalentToAbsence || DEFAULT_SETTINGS.latesEquivalentToAbsence,
-                    autoAttendanceEnabled: saved.autoAttendanceEnabled ?? DEFAULT_SETTINGS.autoAttendanceEnabled,
-                    schoolWifiSSID: saved.schoolWifiSSID || DEFAULT_SETTINGS.schoolWifiSSID,
+
                     language: saved.language || DEFAULT_SETTINGS.language,
                 };
 
@@ -541,8 +449,36 @@ export default function App() {
     };
 
     const updateCourse = (updated: Course) => {
-        const next = courses.map(c => c.id === updated.id ? updated : c);
-        saveData(next);
+        // Shared Assignment Logic
+        // If assignments changed, update all courses with same Code/Name in the same Term
+        const original = courses.find(c => c.id === updated.id);
+        let nextCourses = courses;
+
+        // Check if assignments changed (simple length or content check suitable?)
+        // JSON stringify is easy way to check deep equality for simple objects
+        const assignmentsChanged = JSON.stringify(original?.assignments) !== JSON.stringify(updated.assignments);
+
+        if (assignmentsChanged && original) {
+            nextCourses = courses.map(c => {
+                // Target: Same Term AND (Same Code OR (No Code & Same Name))
+                // Exclude the updated course itself (it will be updated by the main logic below or merged here)
+                // Actually, simpler to just update ALL matching courses including the target.
+
+                const isSameTerm = c.term === updated.term;
+                const isSameCode = updated.code && c.code === updated.code;
+                const isSameName = !updated.code && c.name === updated.name; // Fallback if no code
+
+                if (isSameTerm && (isSameCode || isSameName)) {
+                    return { ...c, assignments: updated.assignments };
+                }
+                return c;
+            });
+        }
+
+        // Apply specific update (might override the above if same ID, which is fine)
+        const finalCourses = nextCourses.map(c => c.id === updated.id ? updated : c);
+
+        saveData(finalCourses);
         if (detailCourse?.id === updated.id) {
             setDetailCourse(updated);
         }
@@ -615,6 +551,13 @@ export default function App() {
                         text: "写真を撮る",
                         onPress: async () => {
                             try {
+                                // Request camera permissions
+                                const { status } = await ImagePicker.requestCameraPermissionsAsync();
+                                if (status !== 'granted') {
+                                    Alert.alert("制限事項", "カメラへのアクセスが許可されていません。設定から許可してください。");
+                                    return;
+                                }
+
                                 const result = await ImagePicker.launchCameraAsync({
                                     mediaTypes: ['images'],
                                     base64: false,
@@ -726,17 +669,6 @@ export default function App() {
     const bgColor = getBackgroundColor(settings.tableBackgroundColor, isDarkMode);
     const textPrimary = isDarkMode ? '#f8fafc' : '#1e293b';
 
-    let Wrapper: any = View;
-    let wrapperProps: any = { style: [styles.container, { backgroundColor: bgColor }] };
-
-    if (useImageBg) {
-        Wrapper = ImageBackground;
-        wrapperProps = { source: { uri: settings.backgroundImage }, style: styles.container };
-    } else if (Array.isArray(bgColor)) {
-        Wrapper = LinearGradient;
-        wrapperProps = { colors: bgColor, style: styles.container };
-    }
-
 
     // Friend State
     const [friends, setFriends] = useState<import('./src/lib/types').Friend[]>([]);
@@ -811,8 +743,24 @@ export default function App() {
     return (
         <SafeAreaProvider>
             <FontProvider settings={settings}>
-                <Wrapper {...(wrapperProps as any)}>
+                <View style={[styles.container, !useImageBg && !Array.isArray(bgColor) && { backgroundColor: bgColor as string }]}>
                     <StatusBar style={isDarkMode ? "light" : "dark"} />
+
+                    {/* Background Layer */}
+                    {useImageBg ? (
+                        <Image
+                            source={{ uri: settings.backgroundImage }}
+                            style={[StyleSheet.absoluteFill, { width: '100%', height: '100%' }]}
+                            resizeMode="cover"
+                        />
+                    ) : Array.isArray(bgColor) ? (
+                        <LinearGradient
+                            colors={bgColor}
+                            style={StyleSheet.absoluteFill}
+                        />
+                    ) : null}
+
+                    {/* Overlay for Dark Mode/Legibility on Image */}
                     {useImageBg && (
                         <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.6)' }]} />
                     )}
@@ -1006,6 +954,9 @@ export default function App() {
                             onSave={(course) => {
                                 addCourse(course);
                                 setIsModalVisible(false);
+                                if (detailCourse && detailCourse.id === course.id) {
+                                    setDetailCourse({ ...course, term: currentTerm });
+                                }
                             }}
                             onDelete={deleteCourse}
                             initialData={editingCourse}
@@ -1098,7 +1049,7 @@ export default function App() {
                             <TouchableOpacity style={styles.tutorialDismiss} onPress={completeVisualTutorial} />
                         </View>
                     )}
-                </Wrapper>
+                </View>
             </FontProvider>
         </SafeAreaProvider>
     );

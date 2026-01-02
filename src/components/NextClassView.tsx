@@ -106,18 +106,19 @@ export const NextClassView: React.FC<NextClassViewProps> = ({ courses, settings,
     // Assignments Logic (Keep existing)
     const allAssignments = useMemo(() => {
         const list: { course: Course, assignment: Assignment }[] = [];
+        const seenIds = new Set<string>();
         courses.forEach(c => {
             (c.assignments || []).forEach(a => {
-                if (!a.completed) list.push({ course: c, assignment: a });
+                if (!a.completed && !seenIds.has(a.id)) {
+                    list.push({ course: c, assignment: a });
+                    seenIds.add(a.id);
+                }
             });
         });
         return list.sort((a, b) => {
-            const getScore = (d?: string) => {
-                if (!d) return 9999;
-                const [m, day] = d.split('/').map(Number);
-                return m * 100 + day;
-            };
-            return getScore(a.assignment.deadline) - getScore(b.assignment.deadline);
+            const timeA = a.assignment.deadline ? new Date(a.assignment.deadline).getTime() : 9999999999999;
+            const timeB = b.assignment.deadline ? new Date(b.assignment.deadline).getTime() : 9999999999999;
+            return timeA - timeB;
         });
     }, [courses]);
 
@@ -129,22 +130,46 @@ export const NextClassView: React.FC<NextClassViewProps> = ({ courses, settings,
     };
 
     const getDeadlineColor = (deadline?: string) => {
-        // ... existing logic ...
         if (!deadline) return textSecondary;
         const now = new Date();
-        const currentYear = now.getFullYear();
-        const [m, d] = deadline.split('/').map(Number);
-        let target = new Date(currentYear, m - 1, d);
-        if (target.getTime() < now.getTime() - 90 * 24 * 60 * 60 * 1000) target.setFullYear(currentYear + 1);
-        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const tDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
-        const diffDays = Math.ceil((tDay.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays < 0) return '#ef4444';
-        if (diffDays <= 1) return '#ef4444';
-        if (diffDays <= 3) return '#f59e0b';
-        if (diffDays <= 7) return '#22c55e';
-        return textSecondary;
+        const target = new Date(deadline);
+
+        // Debug Log
+        console.log(`Deadline: ${deadline}, Parsed: ${target}, DiffDays: ${(target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)}`);
+
+        if (isNaN(target.getTime())) return textSecondary;
+
+        const diffTime = target.getTime() - now.getTime();
+        const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+        if (diffTime < 0) return '#ef4444'; // Already passed
+        if (diffDays <= 1) return '#ef4444'; // Red (Urgent / <= 24h)
+        if (diffDays <= 3) return '#f59e0b'; // Orange (Warning / <= 72h)
+        return '#22c55e'; // Green (Safe)
     };
+
+    const formatDeadline = (deadline?: string) => {
+        if (!deadline) return '';
+        const now = new Date();
+        const date = new Date(deadline);
+
+        if (isNaN(date.getTime())) return deadline; // Fallback to raw string if parse fails
+
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        const hour = date.getHours();
+        const minute = date.getMinutes();
+
+        const pad = (n: number) => n.toString().padStart(2, '0');
+
+        let dateStr = `${month}/${day}`;
+        if (year !== now.getFullYear()) {
+            dateStr = `${year}/${month}/${day}`;
+        }
+
+        return `${dateStr} ${pad(hour)}:${pad(minute)}`;
+    }
 
     const textPrimary = isDarkMode ? '#f8fafc' : '#1e293b';
     const textSecondary = isDarkMode ? '#94a3b8' : '#64748b';
@@ -296,7 +321,7 @@ export const NextClassView: React.FC<NextClassViewProps> = ({ courses, settings,
                                                     <View style={{ flex: 1 }}>
                                                         <ThemedText style={[styles.assignmentText, { color: textPrimary }]}>{a.title}</ThemedText>
                                                         {a.deadline && (
-                                                            <ThemedText style={{ fontSize: 11, color: getDeadlineColor(a.deadline) }}>{t.deadline}: {a.deadline}</ThemedText>
+                                                            <ThemedText style={{ fontSize: 11, color: getDeadlineColor(a.deadline) }}>{formatDeadline(a.deadline)}</ThemedText>
                                                         )}
                                                     </View>
                                                 </TouchableOpacity>
@@ -332,7 +357,7 @@ export const NextClassView: React.FC<NextClassViewProps> = ({ courses, settings,
                                                     </ThemedText>
                                                     {assignment.deadline ? (
                                                         <ThemedText style={{ fontSize: 11, color: getDeadlineColor(assignment.deadline) }}>
-                                                            • {t.deadline}: {assignment.deadline}
+                                                            • {formatDeadline(assignment.deadline)}
                                                         </ThemedText>
                                                     ) : null}
                                                 </View>

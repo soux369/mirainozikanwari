@@ -12,7 +12,7 @@ const CourseCard: React.FC<CourseCardProps> = ({ course, onClick }) => {
     return (
         <TouchableOpacity
             style={[styles.card, { backgroundColor: course.color || '#e0f2fe', shadowColor: course.color || '#000' }]}
-            onPress={() => onClick(course)}
+            onPress={() => onClick && onClick(course)}
             activeOpacity={0.8}
         >
             <View style={styles.content}>

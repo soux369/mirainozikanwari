@@ -8,6 +8,7 @@ struct AssignmentData: Codable, Identifiable {
     let deadline: String
     let courseName: String
     let daysRemaining: Int
+    let timeString: String?
 }
 
 struct AssignmentsProvider: TimelineProvider {
@@ -40,11 +41,66 @@ struct AssignmentsProvider: TimelineProvider {
         if let json = jsonString, let data = json.data(using: .utf8) {
             let decoder = JSONDecoder()
             if let decoded = try? decoder.decode([AssignmentData].self, from: data) {
-                assignments = decoded
+                 // Recalculate daysRemaining
+                 assignments = decoded.map { item in
+                     let calculatedDays = calculateDaysRemaining(deadline: item.deadline) ?? item.daysRemaining
+                     return AssignmentData(
+                         id: item.id,
+                         title: item.title,
+                         deadline: item.deadline,
+                         courseName: item.courseName,
+                         daysRemaining: calculatedDays,
+                         timeString: item.timeString
+                     )
+                 }.sorted { $0.daysRemaining < $1.daysRemaining }
             }
         }
         
         return AssignmentsEntry(date: Date(), assignments: assignments)
+    }
+    
+    func calculateDaysRemaining(deadline: String) -> Int? {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        
+        // Try YYYY-MM-DD
+        formatter.dateFormat = "yyyy-MM-dd"
+        if let date = formatter.date(from: deadline) {
+             return daysFromToday(to: date)
+        }
+        
+        // Try YYYY/MM/DD
+        formatter.dateFormat = "yyyy/MM/dd"
+        if let date = formatter.date(from: deadline) {
+             return daysFromToday(to: date)
+        }
+        
+        // Try MM/DD (assume current year or next year?)
+        // Simple MM/DD assumption: Current Year.
+        // Better: widgetHelper logic does Current Year.
+        let parts = deadline.split(separator: "/")
+        if parts.count == 2, let month = Int(parts[0]), let day = Int(parts[1]) {
+            let now = Date()
+            let calendar = Calendar.current
+            let year = calendar.component(.year, from: now)
+            var components = DateComponents()
+            components.year = year
+            components.month = month
+            components.day = day
+            if let date = calendar.date(from: components) {
+                return daysFromToday(to: date)
+            }
+        }
+        
+        return nil
+    }
+    
+    func daysFromToday(to date: Date) -> Int {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let target = calendar.startOfDay(for: date)
+        let components = calendar.dateComponents([.day], from: today, to: target)
+        return components.day ?? 0
     }
 }
 
@@ -94,7 +150,7 @@ struct AssignmentsWidgetEntryView : View {
                                 Text(item.title)
                                     .font(.system(size: 12, weight: .semibold))
                                     .lineLimit(1)
-                                Text(item.courseName)
+                                Text("\(item.courseName)\(item.timeString != nil ? " • \(item.timeString!)" : "")")
                                     .font(.system(size: 10))
                                     .foregroundColor(.gray)
                                     .lineLimit(1)

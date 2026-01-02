@@ -1,12 +1,13 @@
 import React, { useMemo, useState } from 'react';
-import { StyleSheet, Text, View, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Linking, Alert, Image } from 'react-native';
-import DateTimePicker from '@react-native-community/datetimepicker';
+import { StyleSheet, Text, View, Modal, TouchableOpacity, TextInput, ScrollView, KeyboardAvoidingView, Platform, Alert, Image, Linking, Animated, BackHandler, Dimensions } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
-import { Course, AttendanceStatus, AttendanceRecord, COLORS, Settings, Assignment } from '../lib/types';
-import { BlurView } from 'expo-blur';
 import { LinearGradient } from 'expo-linear-gradient';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import Svg, { Circle } from 'react-native-svg';
+
+import { Course, AttendanceStatus, AttendanceRecord, Assignment, Settings } from '../lib/types';
 
 interface CourseDetailModalProps {
     visible: boolean;
@@ -29,8 +30,113 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({
     onDelete,
     isDarkMode = false
 }) => {
+    // -------------------------------------------------------------------------
+    // 1. Hooks & State
+    // -------------------------------------------------------------------------
+    const [newAssignmentTitle, setNewAssignmentTitle] = useState('');
+    const [assignmentDeadline, setAssignmentDeadline] = useState<Date | undefined>(undefined);
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [viewingImage, setViewingImage] = useState<string | null>(null);
+
+    // Animation state
+    const slideAnim = React.useRef(new Animated.Value(Dimensions.get('window').height)).current;
+    const [isVisible, setIsVisible] = useState(visible);
+
+    React.useEffect(() => {
+        if (visible) {
+            setIsVisible(true);
+            Animated.timing(slideAnim, {
+                toValue: 0,
+                duration: 300,
+                useNativeDriver: true,
+            }).start();
+        } else {
+            Animated.timing(slideAnim, {
+                toValue: Dimensions.get('window').height,
+                duration: 300,
+                useNativeDriver: true,
+            }).start(() => setIsVisible(false));
+        }
+    }, [visible]);
+
+    React.useEffect(() => {
+        if (visible) {
+            const backAction = () => {
+                onClose();
+                return true;
+            };
+            const backHandler = BackHandler.addEventListener('hardwareBackPress', backAction);
+            return () => backHandler.remove();
+        }
+    }, [visible, onClose]);
+
+
+
+    // -------------------------------------------------------------------------
+    // 2. Computed Values
+    // -------------------------------------------------------------------------
+    const stats = useMemo(() => {
+        if (!course || !course.attendanceHistory) return { present: 0, absent: 0, late: 0, total: 0, rate: 0 };
+
+        // Exclude cancelled classes from total
+        const validHistory = course.attendanceHistory.filter(r => r.status !== 'cancelled');
+        const total = validHistory.length;
+
+        if (total === 0) return { present: 0, absent: 0, late: 0, total: 0, rate: 0 };
+
+        const present = validHistory.filter(r => r.status === 'present').length;
+        const late = validHistory.filter(r => r.status === 'late').length;
+        const absent = validHistory.filter(r => r.status === 'absent').length;
+
+        // Logic: N lates = 1 absence (Condensed)
+        const limit = settings.latesEquivalentToAbsence || 3;
+
+        const convertedAbsences = Math.floor(late / limit);
+        const remainingLates = late % limit;
+
+        // Effective Present = Real Present + Remaining Lates (counted as present)
+        const effectivePresent = present + remainingLates;
+        // Effective Absent = Real Absent + Converted Absences
+        const effectiveAbsent = absent + convertedAbsences;
+
+        // Effective Total Events = Effective Present + Effective Absent
+        const effectiveTotal = effectivePresent + effectiveAbsent;
+
+        const rate = effectiveTotal === 0 ? 0 : Math.round((effectivePresent / effectiveTotal) * 100);
+        return { present, absent, late, total, rate };
+    }, [course?.attendanceHistory, settings.latesEquivalentToAbsence]);
+
+    // Theme Colors
+    const bg = isDarkMode ? '#1F2937' : '#FFFFFF';
+    const text = isDarkMode ? '#F3F4F6' : '#111827';
+    const subText = isDarkMode ? '#9CA3AF' : '#6B7280';
+    const itemBg = isDarkMode ? '#374151' : '#F9FAFB'; // A bit lighter for items
+    const inputBg = isDarkMode ? '#374151' : '#F3F4F6';
+
+    const gradients = {
+        blue: ['#60A5FA', '#3B82F6'] as const,
+        green: ['#34D399', '#10B981'] as const,
+        orange: ['#FB923C', '#F97316'] as const,
+        pink: ['#F472B6', '#EC4899'] as const,
+        red: ['#F87171', '#EF4444'] as const,
+    };
+
+    // Rate Ring Color
+    const rateColor = stats.total === 0 ? (isDarkMode ? '#4B5563' : '#D1D5DB') : (stats.rate >= 80 ? '#34D399' : stats.rate >= 60 ? '#FB923C' : '#F87171');
+
+    const isNotificationOff = React.useMemo(() => {
+        if (!course?.skipNotificationUntil) return false;
+        return new Date(course.skipNotificationUntil) > new Date();
+    }, [course?.skipNotificationUntil]);
+
+    if (!isVisible || !course) return null;
+
+    // -------------------------------------------------------------------------
+    // 3. Handlers
+    // -------------------------------------------------------------------------
+
     const handleDelete = () => {
-        if (!course || !onDelete) return;
+        if (!onDelete) return;
         Alert.alert(
             "削除の確認",
             "この授業を削除しますか？\n(出席データも削除されます)",
@@ -47,200 +153,62 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({
             ]
         );
     };
-    const [newAssignmentTitle, setNewAssignmentTitle] = useState('');
-    const [assignmentDeadline, setAssignmentDeadline] = useState<Date | undefined>(undefined);
-    const [showDatePicker, setShowDatePicker] = useState(false);
-    const [showHistory, setShowHistory] = useState(false);
-    const [viewingImage, setViewingImage] = useState<string | null>(null);
 
-    const handleAddPhoto = async () => {
-        Alert.alert(
-            "写真を追加",
-            "カメラで撮影するか、ライブラリから選択するかを選んでください。",
-            [
-                { text: "キャンセル", style: "cancel" },
-                {
-                    text: "写真を撮る",
-                    onPress: async () => {
-                        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-                        if (status !== 'granted') {
-                            Alert.alert('許可が必要です', 'カメラを使用するには許可が必要です。');
-                            return;
-                        }
-                        const result = await ImagePicker.launchCameraAsync({
-                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                            quality: 0.7,
-                        });
-                        if (!result.canceled && result.assets[0].uri) {
-                            saveImage(result.assets[0].uri);
-                        }
-                    }
-                },
-                {
-                    text: "ライブラリから選択",
-                    onPress: async () => {
-                        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-                        if (status !== 'granted') {
-                            Alert.alert('許可が必要です', '写真ライブラリを使用するには許可が必要です。');
-                            return;
-                        }
-                        const result = await ImagePicker.launchImageLibraryAsync({
-                            mediaTypes: ImagePicker.MediaTypeOptions.Images,
-                            quality: 0.7,
-                        });
-                        if (!result.canceled && result.assets[0].uri) {
-                            saveImage(result.assets[0].uri);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
-    const saveImage = async (uri: string) => {
-        if (!course) return;
-        try {
-            // Move to app documents to ensure persistence? 
-            // expo-image-picker returns cache dir mostly.
-            // Better to copy.
-            const filename = uri.split('/').pop();
-            const newPath = FileSystem.documentDirectory + (filename || `photo_${Date.now()}.jpg`);
-            await FileSystem.copyAsync({ from: uri, to: newPath });
-
-            const newImages = [...(course.images || []), newPath];
-            onUpdate({ ...course, images: newImages });
-        } catch (e) {
-            console.error(e);
-            Alert.alert('保存エラー', '写真の保存に失敗しました。');
-        }
-    };
-
-    const handleDeletePhoto = (uri: string) => {
-        Alert.alert("写真を削除", "本当に削除しますか？", [
-            { text: "キャンセル", style: "cancel" },
-            {
-                text: "削除する", style: "destructive",
-                onPress: async () => {
-                    if (!course) return;
-                    // Remove from list
-                    const newImages = (course.images || []).filter(i => i !== uri);
-                    onUpdate({ ...course, images: newImages });
-                    // Optionally delete file from storage to save space
-                    try {
-                        await FileSystem.deleteAsync(uri, { idempotent: true });
-                    } catch (e) { }
-                }
-            }
-        ]);
-    };
-
-    const handleViewPhoto = (uri: string) => {
-        setViewingImage(uri);
-    };
-
-
-
-    // Theme Colors
-    const bg = isDarkMode ? 'rgba(30, 41, 59, 0.95)' : 'rgba(255, 255, 255, 0.95)';
-    const text = isDarkMode ? '#f8fafc' : '#1e293b';
-    const subText = isDarkMode ? '#94a3b8' : '#64748b';
-    const itemBg = isDarkMode ? '#334155' : '#ffffff';
-    const inputBg = isDarkMode ? '#1e293b' : '#f1f5f9';
-    const borderColor = isDarkMode ? '#334155' : '#e2e8f0';
-
-    // Gradient definitions
-    const gradients = {
-        present: ['#4ade80', '#22c55e'] as const, // Green
-        late: ['#facc15', '#eab308'] as const,    // Yellow
-        absent: ['#f87171', '#ef4444'] as const,  // Red
-        neutral: isDarkMode ? ['#475569', '#334155'] as const : ['#f1f5f9', '#e2e8f0'] as const,
-    };
-
-    const stats = useMemo(() => {
-        const records = course?.attendance || [];
-        const total = records.length;
-        const present = records.filter(r => r.status === 'present').length;
-        const late = records.filter(r => r.status === 'late').length;
-        const absent = records.filter(r => r.status === 'absent').length;
-        const cancelled = records.filter(r => r.status === 'cancelled').length;
-
-        const effectiveTotal = total - cancelled;
-
-        // Logic: N Lates = 1 Absence (Compressed)
-        const n = settings.latesEquivalentToAbsence || 3;
-
-        const convertedAbsences = Math.floor(late / n);
-        const remainingLates = late % n;
-
-        // Effective counts after compression
-        const effectivePresent = present;
-        const effectiveAbsent = absent + convertedAbsences;
-        const effectiveLate = remainingLates;
-
-        // Total decreases because N lates are compressed into 1 absence
-        const compressedTotal = effectivePresent + effectiveAbsent + effectiveLate;
-
-        // Attended count (Present + Remaining Lates)
-        const attendedCount = effectivePresent + effectiveLate;
-
-        const rate = compressedTotal > 0 ? Math.round((attendedCount / compressedTotal) * 100) : 0;
-        return { total, present, late, absent, cancelled, rate, penaltyFromLates: convertedAbsences };
-    }, [course?.attendance, settings.latesEquivalentToAbsence]);
-
-    // Rate Gradient Logic
-    const rateGradient = stats.rate >= 80 ? gradients.present : stats.rate >= 60 ? gradients.late : gradients.absent;
-
-    const updateAttendance = (status: AttendanceStatus, delta: number) => {
-        if (!course) return;
-        const records = [...(course.attendance || [])];
-        if (delta > 0) {
-            records.push({ date: new Date().toISOString().split('T')[0], status });
+    const toggleNotification = () => {
+        let newVal: string | undefined;
+        if (isNotificationOff) {
+            // Turn ON -> clear the date
+            newVal = undefined;
         } else {
-            let indexToRemove = -1;
-            for (let i = records.length - 1; i >= 0; i--) {
-                if (records[i].status === status) {
-                    indexToRemove = i;
-                    break;
-                }
-            }
-            if (indexToRemove !== -1) records.splice(indexToRemove, 1);
+            // Turn OFF -> set to 1 year in future
+            const d = new Date();
+            d.setFullYear(d.getFullYear() + 1);
+            newVal = d.toISOString();
         }
-        onUpdate({ ...course, attendance: records });
+        onUpdate({ ...course, skipNotificationUntil: newVal });
+    };
+
+    const addAttendance = (status: AttendanceStatus) => {
+        const newRecord: AttendanceRecord = {
+            id: Math.random().toString(36).substr(2, 9),
+            date: new Date().toISOString(),
+            status
+        };
+        const updatedHistory = [newRecord, ...(course.attendanceHistory || [])];
+        onUpdate({ ...course, attendanceHistory: updatedHistory });
+    };
+
+    const removeAttendance = (status: AttendanceStatus) => {
+        if (!course.attendanceHistory) return;
+        // Find the FIRST record that matches (most recent)
+        const idx = course.attendanceHistory.findIndex(r => r.status === status);
+        if (idx !== -1) {
+            const updatedHistory = [...course.attendanceHistory];
+            updatedHistory.splice(idx, 1);
+            onUpdate({ ...course, attendanceHistory: updatedHistory });
+        }
     };
 
     const addAssignment = () => {
-        if (!course || !newAssignmentTitle.trim()) return;
-
-        let deadlineStr: string | undefined = undefined;
-        if (assignmentDeadline) {
-            const m = assignmentDeadline.getMonth() + 1;
-            const d = assignmentDeadline.getDate();
-            deadlineStr = `${m}/${d}`;
+        if (!newAssignmentTitle.trim()) {
+            Alert.alert("エラー", "課題のタイトルを入力してください。");
+            return;
         }
 
         const newAssignment: Assignment = {
             id: Math.random().toString(36).substr(2, 9),
             title: newAssignmentTitle.trim(),
-            deadline: deadlineStr,
+            deadline: assignmentDeadline ? assignmentDeadline.toISOString() : undefined,
             completed: false,
         };
         const updated = [...(course.assignments || []), newAssignment];
         onUpdate({ ...course, assignments: updated });
+        Alert.alert("完了", "課題を追加しました。");
         setNewAssignmentTitle('');
         setAssignmentDeadline(undefined);
     };
 
-    const handleDateChange = (event: any, selectedDate?: Date) => {
-        if (Platform.OS === 'android') {
-            setShowDatePicker(false);
-        }
-        if (selectedDate) {
-            setAssignmentDeadline(selectedDate);
-        }
-    };
-
     const toggleAssignment = (id: string) => {
-        if (!course) return;
         const updated = (course.assignments || []).map(a =>
             a.id === id ? { ...a, completed: !a.completed } : a
         );
@@ -248,261 +216,351 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({
     };
 
     const deleteAssignment = (id: string) => {
-        if (!course) return;
         const updated = (course.assignments || []).filter(a => a.id !== id);
         onUpdate({ ...course, assignments: updated });
     };
 
-    const renderRow = (status: AttendanceStatus, label: string, gradientColors: readonly [string, string]) => (
-        <View key={status} style={[styles.rowItem, { backgroundColor: itemBg }]}>
-            {/* Gradient Line Accent */}
-            <LinearGradient
-                colors={gradientColors}
-                start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }}
-                style={styles.rowAccent}
-            />
+    const handleDateChange = (event: any, date?: Date) => {
+        if (Platform.OS === 'android') {
+            if (event.type === 'set' && date) {
+                // Determine if we need to set time (conceptually)
+                // For Android, we just set the date first.
+                // If we want time, we need to trigger another picker.
+                const current = assignmentDeadline || new Date();
+                const newDate = new Date(current);
+                newDate.setFullYear(date.getFullYear(), date.getMonth(), date.getDate());
+                setAssignmentDeadline(newDate);
 
-            <Text style={[styles.rowLabel, { color: subText }]}>{label}</Text>
+                // Ask for time immediately
+                require('@react-native-community/datetimepicker').DateTimePickerAndroid.open({
+                    value: newDate,
+                    onChange: handleTimeChange,
+                    mode: 'time',
+                    is24Hour: true,
+                });
+            }
+        } else {
+            // iOS - stays open or handles differently depending on inline/spinner
+            // but we assume standard modal behavior or inline
+            if (date) {
+                setAssignmentDeadline(date);
+            }
+        }
+    };
 
-            <View style={styles.rowControls}>
-                <TouchableOpacity onPress={() => updateAttendance(status, -1)} style={[styles.miniButton, { borderColor: subText }]}>
-                    <Feather name="minus" size={14} color={text} />
+    const handleTimeChange = (event: any, date?: Date) => {
+        if (event.type === 'set' && date) {
+            setAssignmentDeadline(date);
+        }
+    }
+
+    const showAndroidDatePicker = () => {
+        if (Platform.OS === 'android') {
+            try {
+                require('@react-native-community/datetimepicker').DateTimePickerAndroid.open({
+                    value: assignmentDeadline || new Date(),
+                    onChange: handleDateChange,
+                    mode: 'date',
+                });
+            } catch (e) {
+                console.warn("DatePicker error", e);
+            }
+        } else {
+            // Toggle for iOS
+            setShowDatePicker(!showDatePicker);
+        }
+
+    };
+
+    const handleDeleteImage = (index: number) => {
+        Alert.alert(
+            "画像の削除",
+            "この画像を削除しますか？",
+            [
+                { text: "キャンセル", style: "cancel" },
+                {
+                    text: "削除",
+                    style: "destructive",
+                    onPress: () => {
+                        const updatedImages = [...(course.images || [])];
+                        updatedImages.splice(index, 1);
+                        onUpdate({ ...course, images: updatedImages });
+                    }
+                }
+            ]
+        );
+    };
+
+    const handleAddPhoto = async () => {
+        try {
+            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            if (status !== 'granted') {
+                Alert.alert('権限が必要です', '写真を追加するにはアクセス権限が必要です。');
+                return;
+            }
+
+            const result = await ImagePicker.launchImageLibraryAsync({
+                mediaTypes: ImagePicker.MediaTypeOptions.Images,
+                allowsEditing: false,
+                quality: 0.8,
+            });
+
+            if (!result.canceled && result.assets && result.assets.length > 0) {
+                const asset = result.assets[0];
+
+                // Use simple directory logic with legacy API
+                const baseDir = FileSystem.documentDirectory || FileSystem.cacheDirectory;
+
+                if (!baseDir) {
+                    Alert.alert("エラー", "保存先のディレクトリが見つかりません");
+                    return;
+                }
+
+                const timestamp = Date.now();
+                const fileName = `course_img_${timestamp}.jpg`;
+                const destUri = baseDir + fileName;
+
+                try {
+                    await FileSystem.copyAsync({
+                        from: asset.uri,
+                        to: destUri
+                    });
+                    const updatedImages = [...(course.images || []), destUri];
+                    onUpdate({ ...course, images: updatedImages });
+                } catch (copyErr) {
+                    console.error("Copy Error", copyErr);
+                    Alert.alert("エラー", "画像の保存に失敗しました");
+                }
+            }
+        } catch (e) {
+            console.error(e);
+            Alert.alert("エラー", "画像の選択に失敗しました");
+        }
+    };
+
+    // -------------------------------------------------------------------------
+    // 4. Render Helpers
+    // -------------------------------------------------------------------------
+    const renderCounter = (label: string, count: number, color: string, status: AttendanceStatus) => (
+        <View style={[styles.counterRow, { backgroundColor: itemBg }]}>
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={[styles.dot, { backgroundColor: color }]} />
+                <Text style={[styles.counterLabel, { color: text }]}>{label}</Text>
+            </View>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <TouchableOpacity
+                    style={styles.circleBtn}
+                    onPress={() => removeAttendance(status)}
+                    disabled={count === 0}
+                >
+                    <Feather name="minus" size={16} color={count === 0 ? '#D1D5DB' : subText} />
                 </TouchableOpacity>
-                <Text style={[styles.rowValue, { color: text }]}>
-                    {(course.attendance || []).filter(r => r.status === status).length}
-                </Text>
-                <TouchableOpacity onPress={() => updateAttendance(status, 1)} style={[styles.miniButton, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)', borderColor: 'transparent' }]}>
-                    <Feather name="plus" size={14} color={text} />
+                <Text style={[styles.counterValue, { color: text }]}>{count}</Text>
+                <TouchableOpacity style={styles.circleBtn} onPress={() => addAttendance(status)}>
+                    <Feather name="plus" size={16} color={subText} />
                 </TouchableOpacity>
             </View>
         </View>
     );
 
-    if (!course) return null;
-
     return (
-        <Modal
-            visible={visible}
-            transparent={true}
-            animationType="fade"
-            onRequestClose={onClose}
-        >
-            <BlurView intensity={25} tint={isDarkMode ? 'dark' : 'light'} style={StyleSheet.absoluteFill} />
-
-            <KeyboardAvoidingView
-                behavior={Platform.OS === "ios" ? "padding" : undefined}
-                style={{ flex: 1 }}
+        <View style={[StyleSheet.absoluteFill, { zIndex: 50, elevation: 50 }]}>
+            <Animated.View
+                style={[
+                    styles.overlay,
+                    { transform: [{ translateY: slideAnim }] }
+                ]}
             >
-                <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-                    <View onStartShouldSetResponder={() => true} style={[styles.container, { backgroundColor: bg }]}>
+                <TouchableOpacity style={StyleSheet.absoluteFill} onPress={onClose} activeOpacity={1}>
+                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} />
+                </TouchableOpacity>
 
-                        {/* Header */}
-                        <View style={styles.header}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? "padding" : undefined}
+                    style={{ justifyContent: 'flex-end' }}
+                >
+                    <View style={[styles.container, { backgroundColor: bg }]}>
+                        {/* Drag Handle */}
+                        <View style={{ alignItems: 'center', marginTop: 8, marginBottom: 20 }}>
+                            <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+                        </View>
+
+                        {/* 1. Header Section */}
+                        <View style={styles.headerRow}>
                             <View style={{ flex: 1 }}>
-                                <Text style={[styles.title, { color: text }]}>{course.name}</Text>
+                                <Text style={[styles.courseTitle, { color: text }]}>{course.name}</Text>
+
+
+
                                 <View style={styles.tagRow}>
-                                    <LinearGradient colors={isDarkMode ? ['#334155', '#1e293b'] : ['#f1f5f9', '#e2e8f0']} style={styles.tag} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                                        <Text style={[styles.tagText, { color: subText }]}>{course.code || course.id.substring(0, 6)}</Text>
-                                    </LinearGradient>
-                                    <LinearGradient colors={isDarkMode ? ['#334155', '#1e293b'] : ['#f1f5f9', '#e2e8f0']} style={styles.tag} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
-                                        <Text style={[styles.tagText, { color: subText }]}>{course.day}-{course.period}</Text>
-                                    </LinearGradient>
-                                    {course.professor && (
-                                        <LinearGradient colors={isDarkMode ? ['#334155', '#1e293b'] : ['#f1f5f9', '#e2e8f0']} style={styles.tag} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}>
+                                    {course.code ? (
+                                        <View style={[styles.tag, { backgroundColor: itemBg }]}>
+                                            <Feather name="hash" size={10} color={subText} style={{ marginRight: 4 }} />
+                                            <Text style={[styles.tagText, { color: subText }]}>{course.code}</Text>
+                                        </View>
+                                    ) : null}
+                                    {course.room ? (
+                                        <View style={[styles.tag, { backgroundColor: itemBg }]}>
+                                            <Feather name="map-pin" size={10} color={subText} style={{ marginRight: 4 }} />
+                                            <Text style={[styles.tagText, { color: subText }]}>{course.room}</Text>
+                                        </View>
+                                    ) : null}
+                                    <View style={[styles.tag, { backgroundColor: itemBg }]}>
+                                        <Feather name="clock" size={10} color={subText} style={{ marginRight: 4 }} />
+                                        <Text style={[styles.tagText, { color: subText }]}>
+                                            {['月', '火', '水', '木', '金', '土'][['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(course.day)]}-{course.period}
+                                        </Text>
+                                    </View>
+                                    {course.professor ? (
+                                        <View style={[styles.tag, { backgroundColor: itemBg }]}>
+                                            <Feather name="user" size={10} color={subText} style={{ marginRight: 4 }} />
                                             <Text style={[styles.tagText, { color: subText }]}>{course.professor}</Text>
-                                        </LinearGradient>
-                                    )}
+                                        </View>
+                                    ) : null}
                                 </View>
                             </View>
-                            <TouchableOpacity onPress={() => { onClose(); onEdit(course); }} style={[styles.iconBtn, { backgroundColor: isDarkMode ? '#334155' : '#f1f5f9' }]}>
-                                <Feather name="edit-3" size={18} color={text} />
+                            <TouchableOpacity style={[styles.editBtn, { backgroundColor: itemBg }]} onPress={() => onEdit(course)}>
+                                <Feather name="edit-2" size={20} color={text} />
                             </TouchableOpacity>
                         </View>
 
                         <ScrollView style={{ maxHeight: 500 }} showsVerticalScrollIndicator={false}>
-                            {/* Attendance Content */}
-                            <View style={styles.contentRow}>
 
-                                {/* Gradient Rate Ring */}
-                                <View style={styles.rateCardContainer}>
-                                    <TouchableOpacity
-                                        onPress={() => setShowHistory(true)}
-                                        activeOpacity={0.8}
-                                    >
-                                        <LinearGradient
-                                            colors={rateGradient}
-                                            style={styles.gradientRing}
-                                            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-                                        >
-                                            <View style={[styles.innerCircle, { backgroundColor: itemBg }]}>
-                                                <View style={{ alignItems: 'center' }}>
-                                                    <Text style={[styles.rateText, { color: text }]}>{stats.rate}<Text style={{ fontSize: 14 }}>%</Text></Text>
-                                                    <Text style={[styles.rateLabel, { color: subText }]}>履歴を表示</Text>
-                                                </View>
+                            {/* 2. Attendance Section */}
+                            <View style={styles.section}>
+                                <View style={styles.attendanceContainer}>
+                                    {/* Left: Circular Progress */}
+                                    <View style={styles.graphContainer}>
+                                        <View style={{ width: 100, height: 100, justifyContent: 'center', alignItems: 'center' }}>
+                                            <Svg width="100" height="100" viewBox="0 0 100 100">
+                                                <Circle
+                                                    cx="50"
+                                                    cy="50"
+                                                    r="45"
+                                                    stroke={isDarkMode ? "#374151" : "#E5E7EB"}
+                                                    strokeWidth="8"
+                                                    fill="none"
+                                                />
+                                                <Circle
+                                                    cx="50"
+                                                    cy="50"
+                                                    r="45"
+                                                    stroke={rateColor}
+                                                    strokeWidth="8"
+                                                    fill="none"
+                                                    strokeDasharray={`${283 * (stats.rate / 100)} 283`}
+                                                    strokeDashoffset="0"
+                                                    rotation="-90"
+                                                    origin="50, 50"
+                                                    strokeLinecap="round"
+                                                />
+                                            </Svg>
+                                            <View style={[styles.ringInner, { position: 'absolute' }]}>
+                                                <Text style={[styles.rateText, { color: text }]}>{stats.rate}<Text style={{ fontSize: 16 }}>%</Text></Text>
+                                                <Text style={[styles.rateLabel, { color: subText }]}>履歴を表示</Text>
                                             </View>
-                                        </LinearGradient>
-                                    </TouchableOpacity>
-                                </View>
-
-                                {/* Attendance History Modal */}
-                                <Modal
-                                    visible={showHistory}
-                                    transparent
-                                    animationType="fade"
-                                    onRequestClose={() => setShowHistory(false)}
-                                >
-                                    <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 24 }}>
-                                        <View style={{ backgroundColor: itemBg, borderRadius: 20, padding: 20, maxHeight: '60%' }}>
-                                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                                                <Text style={{ fontSize: 18, fontWeight: 'bold', color: text }}>出席履歴</Text>
-                                                <TouchableOpacity onPress={() => setShowHistory(false)}>
-                                                    <Feather name="x" size={24} color={subText} />
-                                                </TouchableOpacity>
-                                            </View>
-
-                                            <ScrollView contentContainerStyle={{ gap: 8 }}>
-                                                {(course.attendance || []).length === 0 ? (
-                                                    <Text style={{ color: subText, textAlign: 'center', padding: 20 }}>記録はありません</Text>
-                                                ) : (
-                                                    [...(course.attendance || [])].reverse().map((record, index) => (
-                                                        <View key={index} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: subText + '40' }}>
-                                                            <Text style={{ color: text, fontSize: 15 }}>{record.date.replace(/-/g, '/')}</Text>
-                                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                                                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: record.status === 'present' ? '#22c55e' : (record.status === 'late' ? '#eab308' : '#ef4444') }} />
-                                                                <Text style={{
-                                                                    color: record.status === 'present' ? '#22c55e' : (record.status === 'late' ? '#eab308' : '#ef4444'),
-                                                                    fontWeight: 'bold'
-                                                                }}>
-                                                                    {record.status === 'present' ? '出席' : (record.status === 'late' ? '遅刻' : (record.status === 'absent' ? '欠席' : '休講'))}
-                                                                </Text>
-                                                            </View>
-                                                        </View>
-                                                    ))
-                                                )}
-                                            </ScrollView>
                                         </View>
                                     </View>
-                                </Modal>
-
-                                {/* Controls */}
-                                <View style={styles.countersColumn}>
-                                    {renderRow('present', '出席', gradients.present)}
-                                    {renderRow('late', '遅刻', gradients.late)}
-                                    {renderRow('absent', '欠席', gradients.absent)}
+                                    {/* Right: Counters */}
+                                    <View style={styles.countersContainer}>
+                                        {renderCounter('出席', stats.present, '#34D399', 'present')}
+                                        {renderCounter('遅刻', stats.late, '#FB923C', 'late')}
+                                        {renderCounter('欠席', stats.absent, '#EF4444', 'absent')}
+                                    </View>
                                 </View>
                             </View>
 
-                            {/* Syllabus Link */}
-                            {course.syllabusUrl ? (
-                                <TouchableOpacity
-                                    onPress={() => Linking.openURL(course.syllabusUrl!)}
-                                    style={[styles.section, { marginTop: 0, marginBottom: 24, backgroundColor: itemBg, padding: 16, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 12 }]}
-                                >
-                                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: isDarkMode ? 'rgba(56, 189, 248, 0.2)' : '#e0f2fe', justifyContent: 'center', alignItems: 'center' }}>
-                                        <Feather name="external-link" size={20} color={isDarkMode ? '#38bdf8' : '#0284c7'} />
-                                    </View>
-                                    <View style={{ flex: 1 }}>
-                                        <Text style={{ fontSize: 14, fontWeight: 'bold', color: text }}>シラバスを開く</Text>
-                                        <Text style={{ fontSize: 11, color: subText }} numberOfLines={1}>{course.syllabusUrl}</Text>
-                                    </View>
-                                    <Feather name="chevron-right" size={20} color={subText} />
-                                </TouchableOpacity>
-                            ) : null}
-
-                            {/* Assignments Section */}
+                            {/* 3. Assignments Section */}
                             <View style={styles.section}>
                                 <Text style={[styles.sectionTitle, { color: text }]}>課題・提出物</Text>
-
-                                <View style={{ gap: 8 }}>
-                                    {(course.assignments || []).filter(a => !a.completed).map(a => (
-                                        <View key={a.id} style={[styles.assignmentItem, { backgroundColor: itemBg }]}>
-                                            <TouchableOpacity onPress={() => toggleAssignment(a.id)} style={styles.checkbox}>
-                                                <Feather name="square" size={20} color={subText} />
-                                            </TouchableOpacity>
-                                            <Text style={[styles.assignmentTitle, { color: text }]}>{a.title}</Text>
-                                            <TouchableOpacity onPress={() => deleteAssignment(a.id)} style={{ marginLeft: 'auto' }}>
-                                                <Feather name="trash-2" size={16} color="#ef4444" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    ))}
-                                </View>
-
-                                {/* Complete Tasks Toggle (Optional - hidden for now to match request "disappear") */}
-
-                                <View style={styles.addAssignmentRow}>
-                                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: inputBg, borderRadius: 8, paddingHorizontal: 12 }}>
-                                        <TextInput
-                                            style={[styles.assignmentInput, { backgroundColor: 'transparent', flex: 1, color: text, paddingHorizontal: 0 }]}
-                                            placeholder="新しい課題を入力..."
-                                            placeholderTextColor={subText}
-                                            value={newAssignmentTitle}
-                                            onChangeText={setNewAssignmentTitle}
-                                            onSubmitEditing={addAssignment}
-                                        />
-                                        <TouchableOpacity onPress={() => setShowDatePicker(!showDatePicker)}>
-                                            <Feather name="calendar" size={18} color={assignmentDeadline ? '#4f46e5' : subText} />
-                                        </TouchableOpacity>
-                                    </View>
-                                    <TouchableOpacity
-                                        style={[styles.miniButton, { backgroundColor: '#4f46e5', borderColor: '#4f46e5', width: 32, height: 32, borderRadius: 16 }]}
-                                        onPress={addAssignment}
-                                    >
-                                        <Feather name="plus" size={18} color="white" />
+                                {/* Input */}
+                                <View style={[styles.inputRow, { backgroundColor: inputBg }]}>
+                                    <TextInput
+                                        style={{ flex: 1, padding: 12, color: text }}
+                                        placeholder="新しい課題を入力..."
+                                        placeholderTextColor={subText}
+                                        value={newAssignmentTitle}
+                                        onChangeText={setNewAssignmentTitle}
+                                        onSubmitEditing={addAssignment}
+                                    />
+                                    <TouchableOpacity onPress={showAndroidDatePicker} style={{ padding: 10 }}>
+                                        <Feather name="calendar" size={20} color={assignmentDeadline ? '#3B82F6' : subText} />
+                                    </TouchableOpacity>
+                                    <TouchableOpacity onPress={addAssignment} style={styles.addBtn}>
+                                        <Feather name="plus" size={20} color="white" />
                                     </TouchableOpacity>
                                 </View>
-                                <View style={{ flexDirection: 'row', gap: 12, marginTop: 24 }}>
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, { backgroundColor: '#ef4444', flex: 1 }]}
-                                        onPress={handleDelete}
-                                    >
-                                        <Feather name="trash-2" size={18} color="white" />
-                                        <Text style={styles.actionButtonText}>削除</Text>
-                                    </TouchableOpacity>
 
-                                    <TouchableOpacity
-                                        style={[styles.actionButton, { backgroundColor: '#f59e0b', flex: 1 }]}
-                                        onPress={() => {
-                                            Alert.alert(
-                                                "通知スキップ",
-                                                "次の授業の通知を1回だけスキップしますか？\n(次回以降は自動で再開されます)",
-                                                [
-                                                    { text: "キャンセル", style: "cancel" },
-                                                    {
-                                                        text: "スキップする",
-                                                        onPress: () => {
-                                                            // Calculate next end time for this course
-                                                            const now = new Date();
-                                                            const skipUntil = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-                                                            onEdit({ ...course, skipNotificationUntil: skipUntil.toISOString() });
-                                                            Alert.alert("完了", "次の通知をスキップしました。");
-                                                        }
-                                                    }
-                                                ]
-                                            );
-                                        }}
-                                    >
-                                        <Feather name="bell-off" size={18} color="white" />
-                                        <Text style={styles.actionButtonText}>通知OFF</Text>
-                                    </TouchableOpacity>
-                                </View>
-                                {assignmentDeadline && (
-                                    <Text style={{ fontSize: 12, color: '#4f46e5', marginTop: 4, marginLeft: 4 }}>
-                                        期限: {assignmentDeadline.getMonth() + 1}/{assignmentDeadline.getDate()}
-                                    </Text>
-                                )}
-                                {showDatePicker && (
+                                {Platform.OS === 'ios' && showDatePicker && (
                                     <DateTimePicker
                                         value={assignmentDeadline || new Date()}
-                                        mode="date"
+                                        mode="datetime"
                                         display="default"
                                         onChange={handleDateChange}
                                     />
                                 )}
+
+                                {/* List */}
+                                <View style={{ gap: 8, marginTop: 12 }}>
+                                    {course.assignments?.map((a) => (
+                                        <View key={a.id} style={[styles.assignmentItem, { backgroundColor: itemBg }]}>
+                                            <TouchableOpacity onPress={() => toggleAssignment(a.id)}>
+                                                <Feather name={a.completed ? "check-circle" : "circle"} size={22} color={a.completed ? '#34D399' : subText} />
+                                            </TouchableOpacity>
+                                            <View style={{ flex: 1 }}>
+                                                <Text style={{ fontSize: 15, color: a.completed ? subText : text, textDecorationLine: a.completed ? 'line-through' : 'none' }}>{a.title}</Text>
+                                                {a.deadline && (
+                                                    <Text style={{ fontSize: 12, color: '#EF4444', marginTop: 2 }}>
+                                                        {new Date(a.deadline).toLocaleString('ja-JP', {
+                                                            year: 'numeric', month: '2-digit', day: '2-digit',
+                                                            hour: '2-digit', minute: '2-digit'
+                                                        })}
+                                                    </Text>
+                                                )}
+                                            </View>
+                                            <TouchableOpacity onPress={() => deleteAssignment(a.id)}>
+                                                <Feather name="trash-2" size={18} color={subText} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </View>
                             </View>
 
-                            {/* Notes Section */}
+                            {/* 4. Action Buttons (Delete & Notification) */}
+                            <View style={styles.actionRow}>
+                                <TouchableOpacity style={styles.deleteButton} onPress={handleDelete}>
+                                    <Feather name="trash-2" size={20} color="white" style={{ marginRight: 8 }} />
+                                    <Text style={styles.buttonText}>削除</Text>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={[styles.notificationButton, { backgroundColor: isNotificationOff ? '#9CA3AF' : '#F59E0B' }]}
+                                    onPress={toggleNotification}
+                                >
+                                    <Feather name={isNotificationOff ? "bell-off" : "bell"} size={20} color="white" style={{ marginRight: 8 }} />
+                                    <Text style={styles.buttonText}>{isNotificationOff ? "通知OFF" : "通知ON"}</Text>
+                                </TouchableOpacity>
+                            </View>
+
+                            {/* Syllabus Button */}
+                            {course.syllabusUrl && (
+                                <TouchableOpacity
+                                    style={[styles.syllabusButton, { backgroundColor: '#3B82F6', marginBottom: 28 }]}
+                                    onPress={() => Linking.openURL(course.syllabusUrl!)}
+                                >
+                                    <Feather name="external-link" size={20} color="white" style={{ marginRight: 8 }} />
+                                    <Text style={styles.buttonText}>シラバスを確認する</Text>
+                                </TouchableOpacity>
+                            )}
+
+                            {/* 5. Notes Section */}
                             <View style={styles.section}>
-                                <Text style={[styles.sectionTitle, { color: text }]}>メモ</Text>
+                                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                                    <Text style={[styles.sectionTitle, { color: text, marginBottom: 0 }]}>メモ</Text>
+                                    <TouchableOpacity onPress={handleAddPhoto}>
+                                        <Feather name="plus-circle" size={24} color="#3B82F6" />
+                                    </TouchableOpacity>
+                                </View>
+
                                 <TextInput
                                     style={[styles.noteInput, { backgroundColor: itemBg, color: text }]}
                                     multiline
@@ -511,213 +569,200 @@ export const CourseDetailModal: React.FC<CourseDetailModalProps> = ({
                                     value={course.notes || ''}
                                     onChangeText={(val) => onUpdate({ ...course, notes: val })}
                                 />
+                                {/* Images */}
+                                {course.images && course.images.length > 0 && (
+                                    <ScrollView
+                                        horizontal
+                                        showsHorizontalScrollIndicator={false}
+                                        style={{ marginTop: 4 }}
+                                        contentContainerStyle={{ paddingTop: 10, paddingRight: 10, paddingLeft: 2 }}
+                                    >
+                                        {course.images.map((img, idx) => (
+                                            <View key={idx} style={{ marginRight: 12, position: 'relative' }}>
+                                                <TouchableOpacity onPress={() => setViewingImage(img)}>
+                                                    <Image source={{ uri: img }} style={{ width: 100, height: 100, borderRadius: 12 }} />
+                                                </TouchableOpacity>
+                                                <TouchableOpacity
+                                                    style={{
+                                                        position: 'absolute', top: -6, right: -6,
+                                                        backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 12, padding: 4
+                                                    }}
+                                                    onPress={() => handleDeleteImage(idx)}
+                                                >
+                                                    <Feather name="x" size={12} color="white" />
+                                                </TouchableOpacity>
+                                            </View>
+                                        ))}
+                                    </ScrollView>
+                                )}
                             </View>
+
+                            {/* Bottom Spacer */}
+                            <View style={{ height: 40 }} />
 
                         </ScrollView>
 
-                        {/* Footer */}
-                        <View style={styles.footer}>
-                            <TouchableOpacity onPress={onClose} style={[styles.closeButton]}>
-                                <Feather name="chevron-down" size={24} color={subText} />
-                            </TouchableOpacity>
-                        </View>
-
+                        {/* Close chevron */}
+                        <TouchableOpacity onPress={onClose} style={{ alignItems: 'center', paddingVertical: 10 }}>
+                            <Feather name="chevron-down" size={24} color={subText} />
+                        </TouchableOpacity>
                     </View>
-                </TouchableOpacity>
-            </KeyboardAvoidingView >
+                </KeyboardAvoidingView>
+            </Animated.View>
 
-            {/* Image Viewer Modal */}
-            <Modal visible={!!viewingImage} transparent={true} onRequestClose={() => setViewingImage(null)} animationType="fade">
-                <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center', alignItems: 'center' }}>
-                    <TouchableOpacity
-                        style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, padding: 8 }}
-                        onPress={() => setViewingImage(null)}
-                    >
+            {/* Simple Image Viewer - Keep as real Modal */}
+            <Modal visible={!!viewingImage} transparent={true} onRequestClose={() => setViewingImage(null)}>
+                <View style={{ flex: 1, backgroundColor: 'black', justifyContent: 'center' }}>
+                    <TouchableOpacity style={{ position: 'absolute', top: 40, right: 20, zIndex: 10, padding: 10 }} onPress={() => setViewingImage(null)}>
                         <Feather name="x" size={30} color="white" />
                     </TouchableOpacity>
                     {viewingImage && (
-                        <Image
-                            source={{ uri: viewingImage }}
-                            style={{ width: '100%', height: '80%' }}
-                            resizeMode="contain"
-                        />
+                        <Image source={{ uri: viewingImage }} style={{ width: '100%', height: '80%' }} resizeMode="contain" />
                     )}
                 </View>
             </Modal>
-        </Modal>
-
+        </View>
     );
 };
 
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
         justifyContent: 'flex-end',
     },
     container: {
-        borderTopLeftRadius: 32, // Reduced
+        borderTopLeftRadius: 32,
         borderTopRightRadius: 32,
-        padding: 24, // Reduced from 28
-        paddingBottom: 32,
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: -6 },
-        shadowOpacity: 0.1,
-        shadowRadius: 16,
-        elevation: 10,
+        paddingHorizontal: 24,
+        paddingBottom: 20,
+        maxHeight: '92%',
     },
-    header: {
+    headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'flex-start',
-        marginBottom: 20, // Reduced from 32
+        marginBottom: 24,
     },
-    title: {
-        fontSize: 22, // Reduced from 26
+    courseTitle: {
+        fontSize: 24,
         fontWeight: 'bold',
+        marginBottom: 4,
+    },
+    courseCode: {
+        fontSize: 14,
         marginBottom: 8,
-        letterSpacing: -0.5,
     },
     tagRow: {
         flexDirection: 'row',
-        gap: 6, // Reduced
+        flexWrap: 'wrap',
+        gap: 6,
+        alignItems: 'center',
     },
     tag: {
-        paddingHorizontal: 10, // Reduced
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 8,
     },
     tagText: {
-        fontSize: 12, // Reduced
+        fontSize: 11,
         fontWeight: '600',
     },
-    iconBtn: {
-        width: 36, // Reduced
-        height: 36,
-        borderRadius: 18,
+    editBtn: {
+        width: 44,
+        height: 44,
+        borderRadius: 22,
         justifyContent: 'center',
         alignItems: 'center',
     },
-    contentRow: {
+    section: {
+        marginBottom: 28,
+    },
+    attendanceContainer: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 16, // Reduced
-        marginBottom: 16,
+        gap: 20,
     },
-    rateCardContainer: {
-        flex: 2,
-        alignItems: 'center',
+    graphContainer: {
         justifyContent: 'center',
+        alignItems: 'center',
     },
-    gradientRing: {
-        width: 100, // Reduced from 130
+    ring: {
+        width: 100,
         height: 100,
         borderRadius: 50,
+        borderWidth: 6,
         justifyContent: 'center',
         alignItems: 'center',
-        shadowColor: "#000",
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 6,
-        elevation: 4,
     },
-    innerCircle: {
-        width: 88, // 100 - 12
-        height: 88,
-        borderRadius: 44,
-        justifyContent: 'center',
+    ringInner: {
         alignItems: 'center',
     },
     rateText: {
-        fontSize: 28, // Reduced from 36
+        fontSize: 28,
         fontWeight: 'bold',
-        letterSpacing: -0.5,
     },
     rateLabel: {
-        fontSize: 10, // Reduced
-        fontWeight: '600',
+        fontSize: 10,
         marginTop: 2,
     },
-    countersColumn: {
-        flex: 3,
-        gap: 8, // Reduced
+    countersContainer: {
+        flex: 1,
+        gap: 8,
     },
-    rowItem: {
+    counterRow: {
         flexDirection: 'row',
-        alignItems: 'center',
         justifyContent: 'space-between',
-        paddingVertical: 10, // Reduced
-        paddingHorizontal: 12,
+        alignItems: 'center',
+        padding: 10,
         borderRadius: 12,
-        overflow: 'hidden',
-        borderWidth: 1,
-        borderColor: 'rgba(0,0,0,0.03)',
     },
-    rowAccent: {
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: 3,
+    dot: {
+        width: 6,
+        height: 16,
+        borderRadius: 3,
+        marginRight: 10,
     },
-    rowLabel: {
-        fontSize: 13, // Reduced
+    counterLabel: {
+        fontSize: 14,
         fontWeight: '600',
     },
-    rowControls: {
-        flexDirection: 'row',
+    circleBtn: {
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#E5E7EB',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 10,
+        backgroundColor: 'white',
     },
-    rowValue: {
-        fontSize: 16, // Reduced
+    counterValue: {
+        fontSize: 16,
         fontWeight: 'bold',
         minWidth: 16,
         textAlign: 'center',
     },
-    miniButton: {
-        width: 24, // Reduced
-        height: 24,
-        borderRadius: 12,
-        borderWidth: 1,
-        borderColor: 'transparent',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    footer: {
-        alignItems: 'center',
-        marginTop: 4,
-    },
-    closeButton: {
-        padding: 8,
-        opacity: 0.5,
-    },
-    section: {
-        marginTop: 24,
-    },
     sectionTitle: {
         fontSize: 16,
-        fontWeight: '700',
+        fontWeight: 'bold',
         marginBottom: 12,
     },
-    noteInput: {
-        borderRadius: 12,
-        padding: 12,
-        fontSize: 14,
-        minHeight: 100,
-        textAlignVertical: 'top',
-    },
-    addAssignmentRow: {
+    inputRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 12,
-        gap: 8,
-    },
-    assignmentInput: {
-        flex: 1,
         borderRadius: 12,
-        paddingHorizontal: 16,
-        paddingVertical: 10,
-        fontSize: 14,
+        paddingRight: 6,
+    },
+    addBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#4F46E5', // Indigo
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     assignmentItem: {
         flexDirection: 'row',
@@ -726,24 +771,45 @@ const styles = StyleSheet.create({
         borderRadius: 12,
         gap: 12,
     },
-    checkbox: {
-        padding: 2,
-    },
-    assignmentTitle: {
-        fontSize: 14,
-        flex: 1,
-    },
-    actionButton: {
+    actionRow: {
         flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'center',
-        paddingVertical: 12,
-        borderRadius: 12,
-        gap: 8,
+        gap: 12,
+        marginBottom: 28,
     },
-    actionButtonText: {
+    deleteButton: {
+        flex: 1,
+        flexDirection: 'row',
+        backgroundColor: '#EF4444',
+        paddingVertical: 14,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    notificationButton: {
+        flex: 1,
+        flexDirection: 'row',
+        paddingVertical: 14,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    buttonText: {
         color: 'white',
         fontWeight: 'bold',
-        fontSize: 16,
+        fontSize: 15,
+    },
+    noteInput: {
+        borderRadius: 16,
+        padding: 16,
+        fontSize: 14,
+        minHeight: 120,
+        textAlignVertical: 'top',
+    },
+    syllabusButton: {
+        flexDirection: 'row',
+        paddingVertical: 14,
+        borderRadius: 12,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
 });

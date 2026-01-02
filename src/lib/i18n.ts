@@ -87,14 +87,9 @@ export const translations = {
         fonts: 'フォント',
 
         // Settings - Beta
-        betaDisclaimer: 'この機能はテスト版です。OSの制限や位置情報設定により、正しく動作しない場合があります。',
+        betaDisclaimer: 'この機能はテスト版です。OSの制限により、正しく動作しない場合があります。',
         adDebug: 'AdMob デバッグ',
         adDebugDescription: 'デバイスIDの確認・登録',
-        autoAttendance: 'Wi-Fi自動出席',
-        autoAttendanceDescription: 'アプリ起動時にWi-Fiを確認して出席',
-        schoolWifiSSID: '学校のWi-Fi名 (SSID)',
-        locationPermissionReq: '権限が必要です',
-        locationPermissionDesc: 'Wi-Fi名を取得して自動出席するには、位置情報の許可が必要です。',
 
         // Settings - Danger
         deleteAllData: '全データを削除',
@@ -102,6 +97,10 @@ export const translations = {
         deleteConfirmMessage: '現在の学期の授業データを全て削除しますか？\nこの操作は元に戻せません。',
         deleteDoneTitle: '削除完了',
         deleteDoneMessage: '削除しました',
+
+        // Settings - Support/Legal
+        legal: '規約',
+        privacyPolicy: 'プライバシーポリシー',
     },
     en: {
         // App / Tabs
@@ -191,14 +190,9 @@ export const translations = {
         fonts: 'Fonts',
 
         // Settings - Beta
-        betaDisclaimer: 'This is a beta feature. It may not work correctly due to OS limitations or location settings.',
+        betaDisclaimer: 'This is a beta feature. It may not work correctly due to OS limitations.',
         adDebug: 'AdMob Debug',
         adDebugDescription: 'Check/Register Device ID',
-        autoAttendance: 'Auto Attendance (Wi-Fi)',
-        autoAttendanceDescription: 'Auto check-in when checking Wi-Fi on launch',
-        schoolWifiSSID: 'School Wi-Fi Name (SSID)',
-        locationPermissionReq: 'Permission Required',
-        locationPermissionDesc: 'Location permission is required to access Wi-Fi SSID for auto attendance.',
 
         // Settings - Danger
         deleteAllData: 'Delete All Data',
@@ -206,6 +200,10 @@ export const translations = {
         deleteConfirmMessage: 'Are you sure you want to delete all course data for the current term?\nThis cannot be undone.',
         deleteDoneTitle: 'Deleted',
         deleteDoneMessage: 'Deleted successfully',
+
+        // Settings - Support/Legal
+        legal: 'Legal',
+        privacyPolicy: 'Privacy Policy',
     }
 };
 
