@@ -1,44 +1,17 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# Ignore everything by default
+*
 
-# dependencies
-node_modules/
+# Allow specific files/directories for the website and GitHub Actions
+!index.html
+!privacy.html
+!app-ads.txt
+!sitemap.xml
+!robots.txt
+!.gitignore
+!.github/
+!.github/workflows/
+!.github/workflows/*
 
-# Expo
-.expo/
-dist/
-web-build/
-expo-env.d.ts
+# If you have asset folders for the website, uncomment below
+#!assets/
 
-# Native
-.kotlin/
-*.orig.*
-*.jks
-*.p8
-*.p12
-*.key
-*.mobileprovision
-
-# Metro
-.metro-health-check*
-
-# debug
-npm-debug.*
-yarn-debug.*
-yarn-error.*
-
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-.env
-my-env.js
-src/secrets.ts
-
-# typescript
-*.tsbuildinfo
-
-# generated native folders
-/ios
-/android
