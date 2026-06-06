@@ -69,20 +69,31 @@
             <section>
                 <h2 class="text-lg font-bold text-slate-800 mb-4">3. 第三者サービスの利用</h2>
                 <p class="mb-4">
-                    本アプリでは、機能提供および品質向上のために、以下の第三者サービスを利用しています。
+                    本アプリでは、機能提供および品質向上のために、以下の第三者サービスを利用しています。これらのサービスは各社のプライバシーポリシーに基づいて運用されます。
                 </p>
 
                 <div class="space-y-4">
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <h3 class="font-bold text-slate-800 mb-2">Google AdMob（広告配信）</h3>
-                        <p class="mb-2">広告配信のために、広告識別子（IDFA/Advertising ID）やデバイス情報を利用する場合があります。</p>
+                        <p class="mb-2">広告配信および収益化のために利用しています。広告識別子（IDFA/Advertising
+                            ID）などのデバイス情報や、位置情報の推測値を利用する場合があります。これにより、ユーザーの興味に合わせた広告の表示や、広告効果の測定が行われます。</p>
                         <a href="https://policies.google.com/technologies/ads?hl=ja" target="_blank"
                             class="text-indigo-600 hover:underline text-xs">Google 広告ポリシー &rarr;</a>
                     </div>
 
                     <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
+                        <h3 class="font-bold text-slate-800 mb-2">RevenueCat（サブスクリプション管理）</h3>
+                        <p class="mb-2">
+                            プレミアム機能の購読状況の管理および決済処理の検証のために利用しています。このサービスでは、匿名のユーザーIDおよび過去の購入履歴（商品ID、価格、日時など）が処理されます。クレジットカード番号などの直接的な支払い情報は開発者およびRevenueCatには送信されず、AppleまたはGoogleによって処理されます。
+                        </p>
+                        <a href="https://www.revenuecat.com/privacy" target="_blank"
+                            class="text-indigo-600 hover:underline text-xs">RevenueCat Privacy Policy &rarr;</a>
+                    </div>
+
+                    <div class="bg-slate-50 p-4 rounded-lg border border-slate-100">
                         <h3 class="font-bold text-slate-800 mb-2">Google Gemini API（AI解析）</h3>
-                        <p class="mb-2">画像からの時間割データ抽出機能において、Googleの生成AIモデルを利用しています。送信されたデータはGoogleのAPI利用規約に基づき安全に処理されます。
+                        <p class="mb-2">
+                            画像からの時間割データ抽出機能において、Googleの生成AIモデルを利用しています。送信された画像は一時的に処理されますが、GoogleのAIモデルの学習に利用されることはありません。
                         </p>
                         <a href="https://ai.google.dev/gemini-api/terms" target="_blank"
                             class="text-indigo-600 hover:underline text-xs">Gemini API 利用規約 &rarr;</a>
@@ -91,11 +102,13 @@
             </section>
 
             <section>
-                <h2 class="text-lg font-bold text-slate-800 mb-4">4. データの保存と共有</h2>
+                <h2 class="text-lg font-bold text-slate-800 mb-4">4. データの保存、共有および消去</h2>
                 <ul class="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>端末内保存:</strong> 本アプリのデータ（時間割、出席簿、設定など）は、ご利用の端末内（ローカルストレージ）に保存されます。</li>
-                    <li><strong>バックアップ:</strong> クラウドへの自動バックアップ機能は提供しておりません。機種変更時などは、OS標準のバックアップ機能をご利用ください。</li>
-                    <li><strong>ユーザー間共有:</strong> QRコードを用いた時間割の共有は、ユーザーの意思操作によってのみ行われます。勝手にデータが共有されることはありません。</li>
+                    <li><strong>端末内保存:</strong> 本アプリに入力されたデータは、原則としてご利用の端末内のローカルストレージに保存されます。</li>
+                    <li><strong>バックアップ:</strong> 開発者によるクラウドサーバーへのデータ送信は行っておりません。</li>
+                    <li><strong>データの削除（消去）:</strong>
+                        本アプリにはアカウント作成機能がないため、アプリを端末から削除（アンインストール）することで、保存されていたすべてのデータが物理的に消去されます。</li>
+                    <li><strong>ユーザー間共有:</strong> QRコードを用いた共有は、ユーザーの明示的な操作によってのみ行われます。</li>
                 </ul>
             </section>
 

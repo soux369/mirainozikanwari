@@ -5,203 +5,409 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>みらいの時間割 - 大学生のための時間割・課題管理アプリ</title>
-    <meta name="description" content="ウィジェット・友達共有でスマートなキャンパスライフを。「みらいの時間割」は大学生必携のアプリです。">
+    <meta name="description" content="大学生活を自動化する、AI ＆ Moodle連携時間割アプリ。「みらいの時間割」は大学生必携の時間割・課題管理アプリです。AIスキャン、Moodle課題連携、出欠管理を完備。">
+    <meta name="keywords" content="みらいの時間割, 時間割, 大学生, 課題管理, Moodle連携, 出欠管理, ウィジェット, キャンパスライフ">
     <meta name="google-site-verification" content="H83Xtna3AHxHhyYd6NG6HVxgZa5Mjf_mjSgw830Kib4" />
-    <!-- Tailwind CSS (via CDN) -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="style.css">
+    
     <!-- Google Fonts -->
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap"
-        rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Noto Sans JP', 'Inter', sans-serif;
-        }
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Outfit:wght@300;400;600;800;900&family=Noto+Sans+JP:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-        .gradient-text {
-            background: linear-gradient(135deg, #4F46E5 0%, #7C3AED 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-    </style>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="assets/app_icon.png">
+
+    <!-- Open Graph Protocol (OGP) -->
+    <meta property="og:title" content="みらいの時間割 - 大学生のための時間割・課題管理アプリ">
+    <meta property="og:description" content="大学生活を自動化する、AI ＆ Moodle連携時間割アプリ。「みらいの時間割」は大学生必携の時間割・課題管理アプリです。AIスキャン、Moodle課題連携、出欠管理を完備。">
+    <meta property="og:image" content="assets/app_icon.png">
+    <meta property="og:url" content="https://apps.apple.com/jp/app/%E3%81%BF%E3%82%89%E3%81%84%E3%81%AE%E6%99%82%E9%96%93%E5%89%B2-ai-%E7%94%BB%E5%83%8F%E3%81%A7%E8%87%AA%E5%8B%95%E7%94%9F%E6%88%90/id6757080757">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="みらいの時間割">
+    
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="みらいの時間割 - 大学生のための時間割・課題管理アプリ">
+    <meta name="twitter:description" content="大学生活を自動化する、AI ＆ Moodle連携時間割アプリ。「みらいの時間割」は大学生必携の時間割・課題管理アプリです。AIスキャン、Moodle課題連携、出欠管理を完備。">
+    <meta name="twitter:image" content="assets/app_icon.png">
+
+    <!-- Schema.org JSON-LD -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "みらいの時間割",
+      "operatingSystem": "iOS, Android",
+      "applicationCategory": "EducationApplication",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "JPY"
+      },
+      "downloadUrl": "https://apps.apple.com/jp/app/%E3%81%BF%E3%82%89%E3%81%84%E3%81%AE%E6%99%82%E9%96%93%E5%89%B2-ai-%E7%94%BB%E5%83%8F%E3%81%A7%E8%87%AA%E5%8B%95%E7%94%9F%E6%88%90/id6757080757",
+      "description": "大学生のためのスマートな時間割・課題・出欠管理アプリ。AIスキャン機能やMoodle課題連携、美しいホーム/ロックウィジェットを完備。",
+      "screenshot": "assets/IMG_2310.png",
+      "author": {
+        "@type": "Person",
+        "name": "mono0261"
+      }
+    }
+    </script>
 </head>
 
-<body class="bg-slate-50 text-slate-800">
+<body>
 
-    <!-- Header -->
-    <header class="bg-white/80 backdrop-blur-md fixed w-full top-0 z-50 border-b border-slate-100">
-        <div class="container mx-auto px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <!-- Icon Placeholder: Replace src with your actual icon path -->
-                <div
-                    class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center text-white font-bold text-xs">
-                    み</div>
-                <span class="font-bold text-lg tracking-tight">みらいの時間割</span>
+    <!-- Ambient Grid & Fluid Mesh Background -->
+    <div class="grid-overlay"></div>
+    <div class="mesh-glow mesh-glow-1"></div>
+    <div class="mesh-glow mesh-glow-2"></div>
+    <div class="mesh-glow mesh-glow-3"></div>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="container navbar-container">
+            <a href="#" class="logo">
+                <img src="assets/app_icon.png" alt="みらいの時間割" class="logo-img">
+                みらいの時間割
+            </a>
+            <ul class="nav-links">
+                <li><a href="#features">機能</a></li>
+                <li><a href="#download" class="nav-cta">無料ダウンロード</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero" data-bg="#ffffff">
+        <div class="container hero-container">
+            <div class="hero-content">
+                <span class="hero-tag"><i class="fa-solid fa-sparkles"></i> App Store & Google Play 配信中</span>
+                <h1>大学生活を自動化する、<br><span class="highlight nobr">AI ＆ Moodle連携。</span></h1>
+                <p><span class="nobr">「みらいの時間割」は、</span><span class="nobr">大学Moodle自動同期、</span><span class="nobr">AIカメラ時間割スキャン、出欠管理、</span><span class="nobr">そしてウィジェット機能を完備した</span><span class="nobr">大学生必須の学業効率化アプリです。</span></p>
+                
+                <div class="app-buttons">
+                    <!-- App Store -->
+                    <a href="https://apps.apple.com/jp/app/%E3%81%BF%E3%82%89%E3%81%84%E3%81%AE%E6%99%82%E9%96%93%E5%89%B2-ai-%E7%94%BB%E5%83%8F%E3%81%A7%E8%87%AA%E5%8B%95%E7%94%9F%E6%88%90/id6757080757" class="btn-store" target="_blank" rel="noopener noreferrer">
+                        <i class="fa-brands fa-apple"></i>
+                        <div class="btn-text">
+                            <span class="small-text">Download on the</span>
+                            <span class="big-text">App Store</span>
+                        </div>
+                    </a>
+
+                </div>
+                <p class="release-note"><i class="fa-solid fa-shield-check"></i> iOS 16.0以降 / Android 8.0以降に対応（基本無料）</p>
             </div>
-            <nav class="hidden md:flex gap-8 text-sm font-medium text-slate-600">
-                <a href="#features" class="hover:text-indigo-600 transition">機能</a>
-                <a href="#support" class="hover:text-indigo-600 transition">サポート</a>
-            </nav>
-            <a href="#download"
-                class="bg-slate-900 text-white px-5 py-2 rounded-full text-sm font-bold hover:bg-slate-800 transition">ダウンロード</a>
+            
+            <div class="hero-image">
+                <div class="phone-mockup-perspective">
+                    <div class="iphone-frame">
+                        <div class="iphone-screen-area">
+                            <div class="dynamic-island"></div>
+                            <img src="assets/IMG_2310.png" alt="みらいの時間割 アプリ時間割プレビュー" class="phone-screenshot">
+                            <div class="glass-reflection"></div>
+                        </div>
+                    </div>
+                    <!-- Floating abstract UI badges for premium look -->
+                    <div class="floating-badge badge-live"><i class="fa-solid fa-circle-play"></i> 次は英語III</div>
+                    <div class="floating-badge badge-bell"><i class="fa-solid fa-bell"></i> 課題: レポート (本日締切)</div>
+                </div>
+            </div>
         </div>
     </header>
 
-    <!-- Hero Section -->
-    <section class="pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden">
-        <div class="container mx-auto px-6 text-center">
-            <div
-                class="inline-block mb-6 px-4 py-1.5 rounded-full bg-indigo-50 border border-indigo-100 text-indigo-700 text-sm font-semibold">
-                大学生必須の時間割アプリ
+    <!-- Interactive App Showcase Section (World-Class Interactive Demo) -->
+    <section id="interactive-showcase" class="interactive-sec" data-bg="#f8fafc">
+        <div class="container">
+            <div class="section-header-left">
+                <h2>手のひらで、<span>キャンパスを自動管理する</span></h2>
+                <p><span class="nobr">タブをタップして、</span><span class="nobr">みらいの時間割アプリが提供する</span><span class="nobr">極めて快適なユーザーインターフェースと</span><span class="nobr">便利な機能を体験してください。</span></p>
             </div>
-            <h1 class="text-4xl md:text-6xl lg:text-7xl font-extrabold tracking-tight mb-8 leading-tight">
-                キャンパスライフを、<br>もっと<span class="gradient-text">スマート</span>に。
-            </h1>
-            <p class="text-lg md:text-xl text-slate-500 max-w-2xl mx-auto mb-10 leading-relaxed">
-                ウィジェット、友達共有。<br>
-                「みらいの時間割」は、あなたの大学生活を強力にサポートする<br class="hidden md:inline">シンプルで美しい時間割管理アプリです。
-            </p>
-
-            <div class="flex flex-col sm:flex-row gap-4 justify-center items-center" id="download">
-                <!-- App Store Badge -->
-                <a href="https://apps.apple.com/jp/app/%E3%81%BF%E3%82%89%E3%81%84%E3%81%AE%E6%99%82%E9%96%93%E5%89%B2-ai-%E7%94%BB%E5%83%8F%E3%81%A7%E8%87%AA%E5%8B%95%E7%94%9F%E6%88%90/id6757080757"
-                    target="_blank" rel="noopener noreferrer"
-                    class="h-14 bg-black text-white rounded-xl flex items-center justify-center px-6 transition hover:scale-105 active:scale-95">
-                    <svg class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.61-.91.61.03 2.34.25 3.44 1.86-3.06 1.83-2.56 5.6.53 6.8zM13 3.5c.73-.83 1.94-1.46 2.94-1.5.13 1.17-.34 2.35-1.04 3.19-.69.85-1.87 1.49-2.92 1.5-.13-1.16.41-2.35 1.02-3.19z" />
-                    </svg>
-                    <div class="text-left">
-                        <div class="text-[10px] leading-tight">Download on the</div>
-                        <div class="text-lg font-bold leading-tight">App Store</div>
+            
+            <div class="showcase-container">
+                <!-- Interactive Controllers -->
+                <div class="showcase-controls">
+                    <!-- Tab 01 -->
+                    <div class="showcase-tab active" onclick="switchShowcase(0)">
+                        <div class="tab-num">01</div>
+                        <div class="tab-content">
+                            <h3>時間割グリッド</h3>
+                            <p>春/秋セメスターごとに時間割をマッピング。曜日・時限ごとの講義名、教室、教授名をカラーコード付きの美しいグリッドで直感的に把握できます。</p>
+                        </div>
+                        <div class="tab-progress-bar"><div class="progress"></div></div>
                     </div>
-                </a>
-                <!-- Google Play Badge -->
-                <a href="https://play.google.com/store/apps/details?id=com.mono0261.universitytimetablemobile&hl=ja"
-                    target="_blank" rel="noopener noreferrer"
-                    class="h-14 bg-black text-white rounded-xl flex items-center justify-center px-6 transition hover:scale-105 active:scale-95">
-                    <svg class="w-6 h-6 mr-3" viewBox="0 0 24 24" fill="currentColor">
-                        <path
-                            d="M3,20.5V3.5C3,2.91 3.34,2.39 3.84,2.15L13.69,12L3.84,21.85C3.34,21.6 3,21.09 3,20.5M16.81,15.12L6.05,21.34L14.54,12.85L16.81,12.85M20.3,12L17.66,10.66L15.39,13.7L17.66,16.74L20.3,15.41C21.18,15.08 21.18,12.33 20.3,12M13.69,12L16.81,8.88L6.05,2.66L13.69,12Z" />
-                    </svg>
-                    <div class="text-left">
-                        <div class="text-[10px] leading-tight">GET IT ON</div>
-                        <div class="text-lg font-bold leading-tight">Google Play</div>
+                    
+                    <!-- Tab 02 -->
+                    <div class="showcase-tab" onclick="switchShowcase(1)">
+                        <div class="tab-num">02</div>
+                        <div class="tab-content">
+                            <h3>締め切り＆予定リスト</h3>
+                            <p>各授業に関連する課題やテスト、レポート締め切りを一覧管理。カレンダーや残り日数の表示を切り替えて、出し忘れを100%防ぎます。</p>
+                        </div>
+                        <div class="tab-progress-bar"><div class="progress"></div></div>
                     </div>
-                </a>
-            </div>
-        </div>
-    </section>
-
-    <!-- Features Section -->
-    <section id="features" class="py-24 bg-white">
-        <div class="container mx-auto px-6">
-            <h2 class="text-3xl font-bold text-center mb-16">主な機能</h2>
-
-            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
-
-                <!-- Feature 1: AI Scan -->
-                <div
-                    class="p-6 rounded-2xl bg-indigo-50/50 hover:bg-indigo-50 transition border border-indigo-100/50 hover:border-indigo-100">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z">
-                            </path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
+                    
+                    <!-- Tab 03 -->
+                    <div class="showcase-tab" onclick="switchShowcase(2)">
+                        <div class="tab-num">03</div>
+                        <div class="tab-content">
+                            <h3>高機能ウィジェット</h3>
+                            <p>ホーム画面に大・中・小のウィジェットを配置。アプリを開く必要すらなく、次の授業位置や課題の締切期限が一瞬でチェック可能です。</p>
+                        </div>
+                        <div class="tab-progress-bar"><div class="progress"></div></div>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">AI時間割スキャン</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">
-                        カメラで撮るだけで、AIが時間割を瞬時にデータ化。面倒な手入力から解放されます。
-                    </p>
                 </div>
-
-                <!-- Feature 2 -->
-                <div
-                    class="p-6 rounded-2xl bg-indigo-50/50 hover:bg-indigo-50 transition border border-indigo-100/50 hover:border-indigo-100">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <line x1="12" y1="8" x2="12" y2="16"></line>
-                            <line x1="8" y1="12" x2="16" y2="12"></line>
-                        </svg>
+                
+                <!-- Interactive Phone Simulator -->
+                <div class="showcase-simulator">
+                    <div class="simulator-wrapper">
+                        <div class="simulator-phone">
+                            <div class="simulator-screen-area">
+                                <div class="dynamic-island"></div>
+                                <!-- Slidable Screen Track -->
+                                <div class="screen-track" id="screenTrack">
+                                    <img src="assets/IMG_2310.png" alt="美しい時間割グリッド画面" class="simulator-image">
+                                    <img src="assets/IMG_2313.png" alt="締め切り・予定リスト画面" class="simulator-image">
+                                    <img src="assets/IMG_2319.png" alt="ホームウィジェット一覧画面" class="simulator-image">
+                                </div>
+                                <div class="glass-reflection"></div>
+                            </div>
+                        </div>
                     </div>
-                    <h3 class="text-xl font-bold mb-3">ウィジェット</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">
-                        ホーム画面で「次の授業」や「課題」を一目でチェック。アプリを開く手間さえ不要です。
-                    </p>
-                </div>
-
-                <!-- Feature 3 -->
-                <div
-                    class="p-6 rounded-2xl bg-indigo-50/50 hover:bg-indigo-50 transition border border-indigo-100/50 hover:border-indigo-100">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-                            <path d="M3 9h18"></path>
-                            <path d="M9 21V9"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">友達と共有</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">
-                        QRコードで時間割を簡単に交換。友達の空きコマが一目でわかるので、予定も合わせやすい。
-                    </p>
-                </div>
-
-                <!-- Feature 4 -->
-                <div
-                    class="p-6 rounded-2xl bg-indigo-50/50 hover:bg-indigo-50 transition border border-indigo-100/50 hover:border-indigo-100">
-                    <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center text-white mb-6">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                            stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-                        </svg>
-                    </div>
-                    <h3 class="text-xl font-bold mb-3">安心のプライバシー</h3>
-                    <p class="text-slate-600 text-sm leading-relaxed">
-                        データは端末内に保存。クラウド共有しない限り、誰にも見られることはありません。
-                    </p>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- Support Section -->
-    <section id="support" class="py-24 bg-slate-50 border-t border-slate-200">
-        <div class="container mx-auto px-6 max-w-2xl text-center">
-            <h2 class="text-3xl font-bold mb-8">サポート・お問い合わせ</h2>
-            <p class="text-slate-600 mb-10 leading-relaxed">
-                アプリに関するご質問、不具合のご報告、機能リクエストは<br>
-                以下のリンク（Googleフォーム）またはSNSからお寄せください。
-            </p>
-            <div class="flex justify-center gap-4">
-                <a href="https://forms.gle/9Bv7QRuX7gbNvxmn6" target="_blank" rel="noopener noreferrer"
-                    class="flex items-center justify-center px-8 py-4 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition shadow-lg hover:shadow-xl font-bold text-lg">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                        class="mr-2">
-                        <path
-                            d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.05 12.05 0 0 0 .57 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.05 12.05 0 0 0 2.81.57A2 2 0 0 1 22 16.92z">
-                        </path>
-                    </svg>
-                    お問い合わせフォーム
+    <!-- Detailed Features Grid Section (Bento Grid) -->
+    <section id="features" class="features-sec" data-bg="#f3f4f6">
+        <div class="container">
+            <div class="section-header-left">
+                <h2>学生生活をスマートにする、<span>先進機能</span></h2>
+                <p><span class="nobr">授業の登録から</span><span class="nobr">課題の管理まで、</span><span class="nobr">大学生に本当に必要な機能だけを</span><span class="nobr">妥協なく詰め込みました。</span></p>
+            </div>
+            
+            <div class="bento-grid">
+                <!-- Card 1: AI Scan (Wide) -->
+                <div class="bento-card bento-wide">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-indigo"><i class="fa-solid fa-camera"></i></div>
+                        <h3>AI 時間割スキャン</h3>
+                        <p>大学のWebサイトや配布物の時間割をカメラでパシャリと撮影するだけで、AIが講義スケジュールを自動解析してアプリに一括インポート。面倒な手入力のストレスから解放されます。</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-scanner">
+                            <div class="scanner-bg"></div>
+                            <div class="scanner-line"></div>
+                            <div class="scanner-frame-corner corner-tl"></div>
+                            <div class="scanner-frame-corner corner-tr"></div>
+                            <div class="scanner-frame-corner corner-bl"></div>
+                            <div class="scanner-frame-corner corner-br"></div>
+                            <div class="scanner-status">
+                                <i class="fa-solid fa-circle"></i> AI AUTO-SCANNING...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card 2: Lock Screen Widget (Square) -->
+                <div class="bento-card">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-blue"><i class="fa-solid fa-lock"></i></div>
+                        <h3>ロック画面ウィジェット</h3>
+                        <p>iOSのロック画面ウィジェットに完全対応。スマホを手に取り、画面を起動するだけで、現在の授業・教室位置・残り出欠情報をすぐ確認できます。</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-lock-screen">
+                            <img src="assets/IMG_2311.png" alt="ロック画面ウィジェットプレビュー" class="lock-screen-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card 3: Attendance tracker (Square) -->
+                <div class="bento-card">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-rose"><i class="fa-solid fa-circle-check"></i></div>
+                        <h3>出席・遅刻・欠席トラッカー</h3>
+                        <p>各授業の出欠数をタップだけでカウント。出席率を自動パーセント計算して表示するため、単位取得に必要な出席基準をきめ細かくサポートします。</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-attendance">
+                            <img src="assets/IMG_2314.png" alt="出欠管理画面プレビュー" class="attendance-image">
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card 4: Moodle Synchronization (Wide) -->
+                <div class="bento-card bento-wide">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-purple"><i class="fa-solid fa-rotate"></i></div>
+                        <h3>大学Moodle自動課題連携</h3>
+                        <p>大学のMoodleポータルとバックグラウンドで自動同期。新しく追加された課題やレポート、小テストの期限を自動でカレンダーに反映し、期日前にお知らせします。（一部大学ポータルにも対応）</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-moodle-sync">
+                            <div class="sync-header">
+                                <div class="sync-title">
+                                    <div class="sync-loader-indicator"></div>
+                                    Moodle 課題バックグラウンド同期
+                                </div>
+                                <div class="sync-status">連携中</div>
+                            </div>
+                            <div class="sync-items">
+                                <div class="sync-item-row">
+                                    憲法III(統治2) - レポート課題 <span>本日 23:59 締切</span>
+                                </div>
+                                <div class="sync-item-row">
+                                    英語III - オンライン小テスト <span>残り3日</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card 5: Safe Local Storage (Square) -->
+                <div class="bento-card">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-green"><i class="fa-solid fa-shield-halved"></i></div>
+                        <h3>端末内ローカル保存</h3>
+                        <p>入力した予定や個人データは、すべてユーザー自身の端末内データベースに暗号化され安全に保存されます。クラウド上のサーバーに勝手に送信されることはありません。</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-privacy-lock">
+                            <div class="privacy-lock-icon">
+                                <i class="fa-solid fa-key"></i>
+                            </div>
+                            <span class="privacy-badge-sim">Encryption Active</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Card 6: Weekly calendar view (Square) -->
+                <div class="bento-card">
+                    <div class="bento-text">
+                        <div class="icon-wrapper icon-indigo"><i class="fa-solid fa-calendar-week"></i></div>
+                        <h3>週次締め切りカレンダー</h3>
+                        <p>週単位で締切予定を一覧化する「締め切りカレンダー」機能を搭載。週の課題ボリュームが一目で分かり、学習予定が組み立てやすくなります。</p>
+                    </div>
+                    <div class="bento-visual">
+                        <div class="visual-weekly-calendar">
+                            <img src="assets/IMG_2317.png" alt="週次カレンダー画面プレビュー" class="weekly-calendar-image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Download Call To Action Section -->
+    <section id="download" class="cta" data-bg="#ffffff">
+        <div class="cta-inner container">
+            <h2>大学生活をもっと、<span>スマートに。</span></h2>
+            <p><span class="nobr">「みらいの時間割」アプリで、</span><span class="nobr">快適で遅れのない</span><span class="nobr">最高水準のキャンパスライフを今すぐ始めましょう。</span></p>
+            <div class="app-buttons">
+                <!-- App Store -->
+                <a href="https://apps.apple.com/jp/app/%E3%81%BF%E3%82%89%E3%81%84%E3%81%AE%E6%99%82%E9%96%93%E5%89%B2-ai-%E7%94%BB%E5%83%8F%E3%81%A7%E8%87%AA%E5%8B%95%E7%94%9F%E6%88%90/id6757080757" class="btn-store" target="_blank" rel="noopener noreferrer">
+                    <i class="fa-brands fa-apple"></i>
+                    <div class="btn-text">
+                        <span class="small-text">Download on the</span>
+                        <span class="big-text">App Store</span>
+                    </div>
                 </a>
+
             </div>
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="py-12 bg-white border-t border-slate-200">
-        <div class="container mx-auto px-6 text-center text-slate-500 text-sm">
-            <div class="flex justify-center gap-6 mb-8">
-                <a href="privacy.html" target="_parent" class="hover:text-indigo-600 transition">プライバシーポリシー</a>
+    <footer>
+        <div class="container footer-container">
+            <div class="footer-left">
+                <h3>
+                    <img src="assets/app_icon.png" alt="みらいの時間割" class="logo-img footer-logo-img">
+                    みらいの時間割
+                </h3>
+                <p>&copy; 2026 みらいの時間割</p>
             </div>
-            <p>&copy; 2025 みらいの時間割. All rights reserved.</p>
+            <div class="footer-center">
+                <p class="disclaimer">※本アプリおよびウェブサイトは、Moodle連携等の機能向上を図るための有志個人によるプロジェクトです。各大学公式ポータルおよび公式Webサイトとは一切関係ありません。</p>
+            </div>
+            <div class="footer-right">
+                <ul class="footer-links">
+                    <li><a href="privacy.html" target="_parent">プライバシーポリシー</a></li>
+                    <li><a href="terms.html" target="_parent">利用規約</a></li>
+                    <li><a href="../privacy-en.html" target="_parent">Privacy Policy (EN)</a></li>
+                    <li><a href="../terms-en.html" target="_parent">Terms of Use (EN)</a></li>
+                    <li><a href="https://forms.gle/9Bv7QRuX7gbNvxmn6" target="_blank" rel="noopener noreferrer">お問い合わせサポート</a></li>
+                </ul>
+            </div>
         </div>
     </footer>
+
+    <!-- Interactive Showcase Logic (Vanilla JS) -->
+    <script>
+        const track = document.getElementById('screenTrack');
+        const tabs = document.querySelectorAll('.showcase-tab');
+        let currentIndex = 0;
+        let autoplayTimer = null;
+
+        function switchShowcase(index) {
+            // Update active state of tabs
+            tabs.forEach((tab, idx) => {
+                if (idx === index) {
+                    tab.classList.add('active');
+                } else {
+                    tab.classList.remove('active');
+                }
+            });
+
+            // Slide the screen track
+            track.style.transform = `translateX(-${index * 100}%)`;
+            currentIndex = index;
+
+            // Reset autoplay timer when user manually interacts
+            resetAutoplay();
+        }
+
+        function autoplay() {
+            let nextIndex = (currentIndex + 1) % tabs.length;
+            switchShowcase(nextIndex);
+        }
+
+        // Initialize Autoplay Timer
+        function resetAutoplay() {
+            clearInterval(autoplayTimer);
+            autoplayTimer = setInterval(autoplay, 7000); // Autoplay every 7 seconds
+        }
+
+        // Initialize autoplay on load
+        resetAutoplay();
+
+        // Dynamic Background Scroll Interaction (World-Class Clean Transitions)
+        const scrollSections = document.querySelectorAll('[data-bg]');
+        const observerOptions = {
+            root: null,
+            rootMargin: '-30% 0px -30% 0px',
+            threshold: 0
+        };
+
+        const scrollObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    const bgColor = entry.target.getAttribute('data-bg');
+                    document.body.style.backgroundColor = bgColor;
+                }
+            });
+        }, observerOptions);
+
+        scrollSections.forEach(section => {
+            scrollObserver.observe(section);
+        });
+    </script>
 
 </body>
 
